@@ -124,6 +124,30 @@ function checkOwnKey(user, key) {
   }
 }
 
+// May this person watch this video?
+// The database decides, with its can_watch function (see
+// supabase-setup.sql): yes for a membership, or for a rental of this
+// one movie that is still in time. We ask with the person's own
+// login token, so the answer is about THEM.
+async function canWatch(request, key) {
+  const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/can_watch", {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: request.headers.get("Authorization"),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ path: key }),
+  });
+
+  if (!response.ok) {
+    console.error("Could not ask can_watch:", response.status, await response.text());
+    throw new HttpError(500, "Could not check your access. Please try again.");
+  }
+
+  return (await response.json()) === true;
+}
+
 // ---------------------------------------------------------------
 // THE ROUTES: subscriptions
 // ---------------------------------------------------------------
@@ -151,10 +175,9 @@ async function play(request, env, user) {
   }
 
   if (!isUploader(user, env)) {
-    const paidUntil = await getPaidUntil(request, user);
-    if (!paidUntil || paidUntil < new Date()) {
+    if (!(await canWatch(request, body.key))) {
       // 402 is the status number for "payment required".
-      throw new HttpError(402, "Subscribe to watch this movie.");
+      throw new HttpError(402, "Subscribe or rent to watch this movie.");
     }
   }
 

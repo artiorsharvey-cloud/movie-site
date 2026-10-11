@@ -6,16 +6,36 @@
 :root {
   /* Tell the browser this is a dark site, so scrollbars are dark too */
   color-scheme: dark;
-  --bg: #0a0a0d;
-  --surface: #16161b;
-  --surface-2: #22222a;
+  --bg: #0d1522;
+  --surface: #142033;
+  --surface-2: #1d2c44;
   --line: rgba(255, 255, 255, 0.1);
-  --text: #f4f4f6;
-  --muted: #9c9ca8;
-  --accent: #ff5a36;
+  --text: #f2f5fa;
+  --muted: #93a1b5;
+  --accent: #f5b041;
+  --accent-strong: #ffc35c;
+  --accent-ink: #1a1205;       /* text ON the accent color */
   --danger: #ff6b6b;
+  --good: #5fd08a;
   --radius: 14px;
-  --page-padding: clamp(16px, 4vw, 56px);
+  --page-padding: clamp(14px, 3vw, 40px);
+  --display-font: Oswald, Inter, system-ui, sans-serif;
+}
+
+/* The light theme: the same names, other colors.
+   script.js puts data-theme="light" on the <html> element. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface-2: #e8ecf3;
+  --line: rgba(15, 25, 45, 0.12);
+  --text: #101826;
+  --muted: #5d6878;
+  --accent: #f0a024;
+  --accent-strong: #f5b041;
+  --danger: #d43c3c;
+  --good: #1f8f4e;
 }
 
 * {
@@ -30,6 +50,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 80px;   /* so the top bar does not cover a heading */
 }
 
 body {
@@ -44,6 +65,7 @@ body {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -52,6 +74,12 @@ p {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+
+main {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 20px var(--page-padding) 0;
 }
 
 /* ---------------------------------------------------------------
@@ -65,11 +93,12 @@ p {
   font: inherit;
   font-weight: 600;
   font-size: 14px;
-  padding: 9px 18px;
+  padding: 9px 16px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s, opacity 0.15s;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.15s, opacity 0.15s, border-color 0.15s;
 }
 
 .button:active {
@@ -87,40 +116,52 @@ p {
   fill: currentColor;
 }
 
-/* White button: the main action */
-.button-light {
-  background: var(--text);
-  color: #0a0a0d;
+/* Colored button: the main action */
+.button-accent {
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
-.button-light:hover:not(:disabled) {
-  background: #d9d9de;
+.button-accent:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+/* Button with only a line around it */
+.button-outline {
+  background: transparent;
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.button-outline:hover:not(:disabled) {
+  background: rgba(128, 140, 160, 0.18);
 }
 
 /* See-through button: the quiet action */
 .button-ghost {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(128, 140, 160, 0.14);
   border-color: var(--line);
   color: var(--text);
 }
 
 .button-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(128, 140, 160, 0.26);
 }
 
-/* Colored button: Subscribe */
-.button-accent {
-  background: var(--accent);
+.button-danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.button-danger:hover:not(:disabled) {
+  background: var(--danger);
   color: white;
 }
 
-.button-accent:hover:not(:disabled) {
-  background: #ff7350;
-}
-
 .button-large {
-  font-size: 16px;
-  padding: 13px 28px;
+  font-size: 15px;
+  padding: 12px 22px;
 }
 
 .button-wide {
@@ -129,30 +170,49 @@ p {
   margin-top: 10px;
 }
 
+/* A round button with only a drawing in it */
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.800;
+  stroke-linejoin: round;
+}
+
 /* ---------------------------------------------------------------
    THE TOP BAR
    --------------------------------------------------------------- */
 .site-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px var(--page-padding);
-  background: linear-gradient(rgba(10, 10, 13, 0.8), transparent);
-  transition: background 0.3s;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
 }
 
-/* script.js adds "scrolled" when you scroll down the page */
-.site-header.scrolled {
-  background: rgba(10, 10, 13, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--line);
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 12px var(--page-padding);
 }
 
 .logo {
@@ -166,7 +226,7 @@ p {
 }
 
 .logo strong {
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .logo svg {
@@ -179,177 +239,411 @@ p {
 }
 
 .logo path {
-  fill: white;
+  fill: var(--accent-ink);
+}
+
+.nav {
+  display: flex;
+  gap: 18px;
+}
+
+.nav a {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.nav a:hover {
+  color: var(--text);
+}
+
+/* The search box grows to fill the free space in the middle */
+.search-box {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.search-box input {
+  width: 100%;
+  margin: 0;
+  padding: 9px 40px 9px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.search-box svg {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  fill: none;
+  stroke: var(--accent-ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* The round circle with the first letter of your email */
 .avatar {
   display: grid;
   place-items: center;
+  flex: none;
   width: 36px;
   height: 36px;
   border-radius: 50%;
   background: var(--accent);
-  color: white;
-  font-weight: 800;
+  color: var(--accent-ink);
+  font-weight: 700;
   text-transform: uppercase;
 }
 
-/* The small "Subscribed until ..." label */
-.status-pill {
-  padding: 6px 12px;
-  border: 1px solid rgba(255, 90, 54, 0.5);
+/* The small number on the admin button: how many orders wait */
+.count-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
   border-radius: 999px;
-  color: #ffb4a2;
+  background: var(--danger);
+  color: white;
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------------
+   THE TOP OF THE PAGE: membership box + hero, side by side
+   --------------------------------------------------------------- */
+.top {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.plans-card {
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+}
+
+.plans-card h2 {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* The row of plan buttons: 24 hours, 1 month, ... */
+.plan-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.plan-tab {
+  flex: 1;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
   font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
   white-space: nowrap;
+}
+
+.plan-tab:hover {
+  color: var(--text);
+}
+
+/* The plan that is chosen right now */
+.plan-tab[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.plan-badge {
+  align-self: flex-start;
+  margin-top: 16px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.plan-price s {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.plan-price strong {
+  font-family: var(--display-font);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.plan-note {
+  min-height: 1.5em;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.plan-points {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+.plan-points li {
+  position: relative;
+  margin-top: 8px;
+  padding-left: 26px;
+}
+
+/* A small tick drawn with borders */
+.plan-points li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 5px;
+  width: 6px;
+  height: 11px;
+  border: solid var(--accent);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.plan-status {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--good);
+  border-radius: 10px;
+  color: var(--good);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Push the button to the bottom of the box */
+.plans-card .button-wide {
+  margin-top: auto;
+}
+
+.plan-points + .button-wide,
+.plan-status + .button-wide {
+  margin-top: 18px;
 }
 
 /* ---------------------------------------------------------------
    THE HERO
+   It is always dark, in both themes, so white words are readable
+   on top of the picture.
    --------------------------------------------------------------- */
 .hero {
   position: relative;
   display: flex;
-  align-items: flex-end;
-  min-height: min(78vh, 760px);
-  padding: 120px var(--page-padding) 56px;
+  align-items: center;
+  gap: 28px;
+  min-height: 440px;
+  padding: 40px 64px 56px;
+  border-radius: 20px;
   overflow: hidden;
+  background:
+    radial-gradient(70% 90% at 85% 20%, rgba(245, 176, 65, 0.28), transparent 70%),
+    #101826;
+  color: #f2f5fa;
 }
 
-/* The picture behind the words. When there is no movie, it is a
-   soft glow in the accent color. */
+/* The poster again, made huge and blurry: soft colors behind the words */
 .hero-backdrop {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(60% 80% at 80% 10%, rgba(255, 90, 54, 0.35), transparent 70%),
-    radial-gradient(50% 60% at 10% 90%, rgba(120, 80, 255, 0.2), transparent 70%);
-}
-
-.hero-backdrop video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.8s;
-}
-
-.hero-backdrop video.ready {
-  opacity: 1;
-}
-
-/* A poster is tall and the hero is wide. So we make the poster very
-   big and blurry: it becomes soft colors, not a stretched picture. */
-.hero-backdrop img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(40px) saturate(1.3);
+  filter: blur(46px) saturate(1.2) brightness(0.4);
   transform: scale(1.3);
-}
-
-/* Two dark fades on top of the picture: one from the bottom, one
-   from the left. They make the white words easy to read. */
-.hero-backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(to top, var(--bg) 0%, rgba(10, 10, 13, 0.5) 35%, transparent 70%),
-    linear-gradient(to right, rgba(10, 10, 13, 0.85) 0%, transparent 65%);
 }
 
 .hero-content {
   position: relative;
-  max-width: 640px;
-  animation: rise 0.7s ease-out both;
+  flex: 1;
+  min-width: 0;
+  /* script.js restarts this each time the movie changes */
+  animation: rise 0.5s ease-out both;
 }
 
 .hero-label {
   color: var(--accent);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  margin-bottom: 12px;
 }
 
 .hero h1 {
-  font-size: clamp(36px, 7vw, 76px);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
+  margin-top: 10px;
+  font-family: var(--display-font);
+  font-size: clamp(30px, 4.4vw, 56px);
+  font-weight: 700;
+  line-height: 1.08;
+  text-transform: uppercase;
   overflow-wrap: anywhere;
 }
 
 .hero-description {
-  margin-top: 18px;
-  color: #d0d0d8;
-  font-size: clamp(15px, 1.6vw, 18px);
-  /* Show at most 3 lines, then "..." */
+  margin-top: 14px;
+  max-width: 560px;
+  color: #c9d2df;
+  font-size: 15px;
+  /* Show at most 4 lines, then "..." */
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.hero .button {
-  margin-top: 28px;
+.hero-meta {
+  margin-top: 14px;
+  color: #c9d2df;
+  font-size: 14px;
+}
+
+.hero-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.hero .button-outline {
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #f2f5fa;
+}
+
+.hero-poster {
+  position: relative;
+  flex: none;
+  width: min(230px, 26%);
+  aspect-ratio: 2 / 3;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  animation: rise 0.5s ease-out both;
+}
+
+.hero-arrow {
+  position: absolute;
+  bottom: 14px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  background: rgba(10, 16, 26, 0.5);
+  cursor: pointer;
+}
+
+.hero-arrow:hover {
+  background: rgba(10, 16, 26, 0.9);
+}
+
+.hero-arrow svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: #f2f5fa;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hero-arrow-left {
+  left: 16px;
+}
+
+.hero-arrow-right {
+  right: 16px;
+}
+
+.hero-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+.hero-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: width 0.25s, background 0.25s;
+}
+
+/* The dot of the movie on screen is wider */
+.hero-dot[aria-current="true"] {
+  width: 28px;
+  background: var(--accent);
 }
 
 /* ---------------------------------------------------------------
-   THE MOVIES
+   GENRE BUTTONS
    --------------------------------------------------------------- */
-.shelf {
-  padding: 8px var(--page-padding) 72px;
-}
-
-.shelf-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.shelf-heading h2 {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.movie-count {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-/* The search box sits at the right end of the heading line */
-.shelf-heading .search {
-  width: min(260px, 100%);
-  margin: 0 0 0 auto;
-  padding: 9px 16px;
-  border-radius: 999px;
-  background: var(--surface);
-  font-size: 14px;
-}
-
-/* The row of genre buttons */
 .chips {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 24px;
+  margin-top: 22px;
+  padding-bottom: 4px;
+  overflow-x: auto;           /* slide sideways on small screens */
+  scrollbar-width: none;
 }
 
 .chip {
+  flex: none;
   padding: 7px 16px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -364,28 +658,72 @@ p {
 
 .chip:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(128, 140, 160, 0.14);
 }
 
 /* The genre that is chosen right now */
 .chip[aria-pressed="true"] {
-  background: var(--text);
-  border-color: var(--text);
-  color: #0a0a0d;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
 }
 
-/* auto-fill means: fit as many columns as the screen allows */
+/* ---------------------------------------------------------------
+   THE MOVIES
+   --------------------------------------------------------------- */
+.shelf {
+  padding: 34px 0 0;
+}
+
+.shelf-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.shelf-heading h2 {
+  font-family: var(--display-font);
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.movie-count {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* A ROW: cards side by side that slide sideways */
+.movie-row {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 10px;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.movie-row .movie-card {
+  flex: none;
+  width: 172px;
+  scroll-snap-align: start;
+}
+
+/* THE GRID: auto-fill means "fit as many columns as the screen allows" */
 .movie-grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 32px 18px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 28px 16px;
 }
 
 .movie-card {
   position: relative;
+  min-width: 0;
   animation: rise 0.5s ease-out both;
 }
 
@@ -413,6 +751,38 @@ p {
   transition: transform 0.4s ease;
 }
 
+/* The big first letter on a card with no picture */
+.movie-letter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, var(--surface-2), var(--surface));
+  color: var(--muted);
+  font-family: var(--display-font);
+  font-size: 72px;
+  font-weight: 700;
+}
+
+/* The price in the corner of a card */
+.movie-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* A movie you may already watch */
+.movie-tag.open {
+  background: var(--good);
+  color: white;
+}
+
 /* A dark fade and a round play button, shown on hover */
 .movie-play {
   position: absolute;
@@ -425,20 +795,20 @@ p {
 }
 
 .movie-play svg {
-  width: 56px;
-  height: 56px;
-  padding: 16px;
+  width: 52px;
+  height: 52px;
+  padding: 15px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  fill: #0a0a0d;
+  background: var(--accent);
+  fill: var(--accent-ink);
   transform: scale(0.8);
   transition: transform 0.25s;
 }
 
 .movie-poster:hover,
 .movie-poster:focus-visible {
-  transform: translateY(-6px);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.25);
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
 }
 
 .movie-poster:hover img,
@@ -456,65 +826,29 @@ p {
   transform: scale(1);
 }
 
-/* The big first letter on a card with no picture */
-.movie-letter {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(160deg, #2c2c36, #17171c);
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 72px;
-  font-weight: 800;
-}
-
 .movie-title {
-  margin-top: 12px;
+  margin-top: 10px;
   font-weight: 600;
   font-size: 15px;
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
-.movie-year {
+.movie-info {
   color: var(--muted);
   font-size: 13px;
   margin-top: 2px;
 }
 
-/* The small round Delete button on your own movies */
-.movie-delete {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(10, 10, 13, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  cursor: pointer;
-  transition: background 0.15s;
+.movie-info .star {
+  color: var(--accent);
+  font-weight: 600;
 }
 
-.movie-delete svg {
-  width: 18px;
-  height: 18px;
-  fill: var(--text);
-}
-
-.movie-delete:hover {
-  background: #d43c3c;
-}
-
-/* Shown when there are no movies at all */
+/* Shown when there are no movies to show */
 .empty {
   grid-column: 1 / -1;
-  padding: 48px 20px;
+  padding: 44px 20px;
   border: 1px dashed var(--line);
   border-radius: var(--radius);
   color: var(--muted);
@@ -530,7 +864,9 @@ p {
 }
 
 .site-footer {
-  padding: 28px var(--page-padding);
+  max-width: 1440px;
+  margin: 56px auto 0;
+  padding: 24px var(--page-padding);
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 13px;
@@ -547,7 +883,7 @@ p {
   border-radius: 20px;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
 }
 
 .dialog[open] {
@@ -570,9 +906,10 @@ p {
 }
 
 .dialog h2 {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-family: var(--display-font);
+  font-size: 26px;
+  font-weight: 700;
+  padding-right: 40px;        /* room for the X button */
 }
 
 .dialog-hint {
@@ -593,39 +930,220 @@ p {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: rgba(40, 40, 48, 0.85);
+  background: rgba(40, 50, 66, 0.85);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .dialog-close:hover {
-  background: rgba(80, 80, 92, 0.95);
+  background: rgba(80, 92, 110, 0.95);
 }
 
 .dialog-close svg {
   width: 18px;
   height: 18px;
   fill: none;
-  stroke: var(--text);
+  stroke: #f2f5fa;
   stroke-width: 2;
   stroke-linecap: round;
 }
 
-/* The Subscribe window */
-.price {
-  margin-top: 10px;
-  color: var(--muted);
+.dialog-wide {
+  width: min(680px, calc(100vw - 24px));
 }
 
-.price strong {
+/* ---- The window for one movie ---- */
+.dialog-movie {
+  width: min(820px, calc(100vw - 24px));
+}
+
+.movie-detail {
+  display: flex;
+  gap: 26px;
+  padding: 28px;
+}
+
+.movie-detail-poster {
+  position: relative;
+  flex: none;
+  width: 240px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.movie-detail-poster img,
+.movie-detail-poster video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.movie-detail-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.movie-detail-text h2 {
+  margin-top: 6px;
+  font-size: 32px;
+  line-height: 1.15;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.movie-detail-meta {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.movie-detail-meta .star {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.movie-detail-description {
+  margin-top: 14px;
+  white-space: pre-wrap;      /* keep line breaks the writer typed */
+  overflow-wrap: anywhere;    /* break very long words on phones */
+}
+
+/* "You may watch until ..." */
+.movie-access {
+  margin-top: 16px;
+  color: var(--good);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.movie-detail-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.movie-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.like-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
   color: var(--text);
-  font-size: 34px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.like-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.800;
+}
+
+/* Liked: the heart is filled in */
+.like-button[aria-pressed="true"] {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.like-button[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+
+.stars {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stars-label {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.stars-row {
+  display: inline-flex;
+}
+
+.star-button {
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* A star you have given */
+.star-button.on {
+  color: var(--accent);
+}
+
+.star-button:hover {
+  transform: scale(1.15);
+}
+
+.movie-detail-text .button-danger {
+  margin-top: 22px;
+}
+
+/* ---- The player ---- */
+.dialog-player {
+  width: min(1100px, calc(100vw - 24px));
+  background: #000;
+}
+
+#player-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 74dvh;
+  background: #000;
+}
+
+.player-info {
+  padding: 16px 24px 20px;
+  background: var(--surface);
+}
+
+.player-info h2 {
+  font-size: 22px;
+}
+
+.player-meta {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+/* ---- The payment window ---- */
+.order-amount strong {
+  font-family: var(--display-font);
+  font-size: 40px;
+  font-weight: 700;
 }
 
 .steps {
-  margin: 20px 0 0;
+  margin: 14px 0 0;
   padding-left: 20px;
 }
 
@@ -656,42 +1174,85 @@ p {
   overflow-wrap: anywhere;
 }
 
-.pay-email {
-  display: block;
-  overflow-wrap: anywhere;
+.order-code-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* The code is big, so nobody mistypes it */
+.order-code {
+  padding: 6px 16px;
+  border: 1.500px dashed var(--accent);
+  border-radius: 10px;
+  color: var(--accent);
+  font-family: var(--display-font);
+  font-size: 30px;
+  letter-spacing: 0.12em;
+}
+
+/* ---- The admin window ---- */
+.admin-subheading {
+  margin-top: 22px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.order-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.order-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.order-row-code {
+  font-family: var(--display-font);
+  font-size: 22px;
+  letter-spacing: 0.08em;
   color: var(--accent);
 }
 
-/* The player is a much wider pop-up */
-.dialog-player {
-  width: min(1100px, calc(100vw - 24px));
-  background: #000;
+.order-row-text {
+  flex: 1;
+  min-width: 180px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
-#player-video {
+.order-row-text small {
   display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: 72dvh;
-  background: #000;
+  color: var(--muted);
 }
 
-.player-info {
-  padding: 20px 24px 26px;
-  background: var(--surface);
+.order-row-amount {
+  font-weight: 700;
 }
 
-.player-year {
+.order-row-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.order-row-status.paid {
+  color: var(--good);
+}
+
+.order-empty {
+  padding: 12px 0;
   color: var(--muted);
   font-size: 14px;
-  margin-top: 2px;
-}
-
-.player-description {
-  margin-top: 12px;
-  color: #d0d0d8;
-  white-space: pre-wrap;      /* keep line breaks the writer typed */
-  overflow-wrap: anywhere;    /* break very long words on phones */
 }
 
 /* ---------------------------------------------------------------
@@ -709,13 +1270,12 @@ label {
   font-weight: 500;
 }
 
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="search"],
-select,
-textarea {
+form input[type="text"],
+form input[type="email"],
+form input[type="password"],
+form input[type="number"],
+form select,
+form textarea {
   display: block;
   width: 100%;
   margin-top: 6px;
@@ -740,7 +1300,8 @@ textarea {
 }
 
 ::placeholder {
-  color: #5c5c68;
+  color: var(--muted);
+  opacity: 0.7;
 }
 
 .form-row {
@@ -750,9 +1311,10 @@ textarea {
 
 .form-grow {
   flex: 1;
+  min-width: 0;
 }
 
-.form-year {
+.form-small {
   width: 110px;
 }
 
@@ -764,7 +1326,7 @@ textarea {
   align-items: center;
   gap: 2px;
   padding: 22px 16px;
-  border: 1.5px dashed rgba(255, 255, 255, 0.22);
+  border: 1.500px dashed var(--muted);
   border-radius: var(--radius);
   text-align: center;
   transition: border-color 0.15s, background 0.15s;
@@ -773,13 +1335,12 @@ textarea {
 .file-zone:hover,
 .file-zone:focus-within {
   border-color: var(--accent);
-  background: rgba(255, 90, 54, 0.06);
+  background: rgba(245, 176, 65, 0.07);
 }
 
 /* script.js adds "has-file" after you choose a file */
 .file-zone.has-file {
   border-style: solid;
-  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* The real file input: invisible, but it covers the whole box */
@@ -870,7 +1431,7 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 18px;
   background: var(--surface-2);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   font-size: 14px;
   opacity: 0;
   transform: translate(-50%, 20px);
@@ -925,38 +1486,80 @@ textarea {
 }
 
 /* ---------------------------------------------------------------
-   PHONES
+   TABLETS: the membership box moves under the hero
    --------------------------------------------------------------- */
-@media (max-width: 600px) {
-  .movie-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 24px 12px;
-  }
-
-  .shelf-heading {
-    flex-wrap: wrap;
-  }
-
-  .shelf-heading .search {
-    width: 100%;
+@media (max-width: 980px) {
+  .top {
+    grid-template-columns: 1fr;
   }
 
   .hero {
-    min-height: 68vh;
-    padding-bottom: 36px;
+    order: -1;                /* show the hero first */
+  }
+
+  .nav {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------
+   PHONES
+   --------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .header-inner {
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .logo span {
     font-size: 18px;
   }
 
-  #logout-button {
-    padding: 9px 12px;
+  /* The search box drops to its own line */
+  .search-box {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
   }
 
-  /* Not enough room in the top bar on a phone */
-  .status-pill {
+  .header-actions {
+    margin-left: auto;
+  }
+
+  .header-actions .button {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .hero {
+    min-height: 0;
+    padding: 26px 20px 64px;
+  }
+
+  .hero-poster {
     display: none;
+  }
+
+  .movie-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 22px 12px;
+  }
+
+  .movie-row .movie-card {
+    width: 142px;
+  }
+
+  .movie-detail {
+    flex-direction: column;
+    padding: 22px 18px;
+  }
+
+  .movie-detail-poster {
+    width: 150px;
+  }
+
+  .movie-detail-text h2 {
+    font-size: 26px;
   }
 
   .dialog-padded {

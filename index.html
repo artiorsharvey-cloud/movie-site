@@ -1,66 +1,134 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mn">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Movie Site</title>
-  <meta name="theme-color" content="#0a0a0d">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff5a36'/%3E%3Cpath d='M12 9v14l12-7z' fill='white'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#0d1522">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f5b041'/%3E%3Cpath d='M12 9v14l12-7z' fill='%23101826'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <!-- Set the light or dark theme before the page is drawn, so it
+       does not flash the wrong colors. -->
+  <script>
+    try {
+      document.documentElement.dataset.theme = localStorage.getItem("theme") || "dark";
+    } catch (error) {
+      document.documentElement.dataset.theme = "dark";
+    }
+  </script>
 </head>
 <body>
   <!-- THE TOP BAR: stays at the top while you scroll -->
-  <header id="site-header" class="site-header">
-    <a class="logo" href="#">
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="8"/>
-        <path d="M12 9v14l12-7z"/>
-      </svg>
-      <span>movie<strong>site</strong></span>
-    </a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="logo" href="#">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="8"/>
+          <path d="M12 9v14l12-7z"/>
+        </svg>
+        <span>movie<strong>site</strong></span>
+      </a>
 
-    <div class="header-actions">
-      <!-- Shown when nobody is logged in -->
-      <button id="open-login-button" class="button button-ghost" type="button" hidden>Sign in</button>
+      <nav class="nav">
+        <a href="#">Нүүр</a>
+        <a href="#all-movies">Бүх кино</a>
+      </nav>
 
-      <!-- Shown when somebody is logged in -->
-      <button id="open-upload-button" class="button button-light" type="button" hidden>Upload</button>
-      <button id="open-subscribe-button" class="button button-accent" type="button" hidden>Subscribe</button>
-      <span id="subscription-status" class="status-pill" hidden></span>
-      <span id="my-avatar" class="avatar" hidden></span>
-      <button id="logout-button" class="button button-ghost" type="button" hidden>Log out</button>
+      <div class="search-box">
+        <input id="search-input" type="search" placeholder="Хайх..." aria-label="Кино хайх">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      </div>
+
+      <div class="header-actions">
+        <button id="theme-button" class="icon-button" type="button" aria-label="Өнгө солих">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>
+        </button>
+
+        <!-- Shown when nobody is logged in -->
+        <button id="open-login-button" class="button button-outline" type="button" hidden>Нэвтрэх</button>
+
+        <!-- Shown only to admins -->
+        <button id="open-admin-button" class="button button-ghost" type="button" hidden>
+          Захиалга <span id="admin-count" class="count-badge" hidden></span>
+        </button>
+        <button id="open-upload-button" class="button button-accent" type="button" hidden>Кино нэмэх</button>
+
+        <!-- Shown when somebody is logged in -->
+        <span id="my-avatar" class="avatar" hidden></span>
+        <button id="logout-button" class="button button-ghost" type="button" hidden>Гарах</button>
+      </div>
     </div>
   </header>
 
   <main>
-    <!-- THE HERO: the big picture at the top, showing the newest movie -->
-    <section id="hero" class="hero">
-      <div class="hero-backdrop">
-        <video id="hero-video" muted playsinline preload="metadata" tabindex="-1" aria-hidden="true"></video>
-        <img id="hero-image" alt="" hidden>
-      </div>
+    <div class="top">
+      <!-- THE MEMBERSHIP BOX -->
+      <aside class="plans-card" aria-labelledby="plans-heading">
+        <h2 id="plans-heading">Гишүүнчлэлийн эрх</h2>
 
-      <div class="hero-content">
-        <p id="hero-label" class="hero-label"></p>
-        <h1 id="hero-title"></h1>
-        <p id="hero-description" class="hero-description"></p>
-        <button id="hero-button" class="button button-light button-large" type="button" hidden></button>
-      </div>
-    </section>
+        <!-- One small button per plan. script.js fills this in. -->
+        <div id="plan-tabs" class="plan-tabs"></div>
 
-    <!-- THE MOVIES: always visible, even when nobody is logged in -->
-    <section class="shelf">
+        <p id="plan-badge" class="plan-badge" hidden></p>
+        <p class="plan-price">
+          <s id="plan-old-price" hidden></s>
+          <strong id="plan-price"></strong>
+        </p>
+        <p id="plan-per-day" class="plan-note"></p>
+
+        <ul class="plan-points">
+          <li>Бүх киног хязгааргүй үзнэ</li>
+          <li>Өндөр чанартай үзвэр</li>
+          <li>Утас, компьютер, ТВ-ээс үзнэ</li>
+        </ul>
+
+        <p id="plan-status" class="plan-status" hidden></p>
+        <button id="plan-buy-button" class="button button-accent button-wide" type="button">Худалдан авах</button>
+      </aside>
+
+      <!-- THE HERO: the big box that shows the top movies in turn -->
+      <section id="hero" class="hero" aria-roledescription="carousel">
+        <img id="hero-backdrop" class="hero-backdrop" alt="" hidden>
+
+        <div class="hero-content">
+          <p id="hero-label" class="hero-label"></p>
+          <h1 id="hero-title"></h1>
+          <p id="hero-description" class="hero-description"></p>
+          <p id="hero-meta" class="hero-meta"></p>
+          <div class="hero-buttons">
+            <button id="hero-button" class="button button-accent button-large" type="button" hidden></button>
+            <button id="hero-more-button" class="button button-outline button-large" type="button" hidden>Дэлгэрэнгүй</button>
+          </div>
+        </div>
+
+        <img id="hero-poster" class="hero-poster" alt="" hidden>
+
+        <button id="hero-previous" class="hero-arrow hero-arrow-left" type="button" aria-label="Өмнөх кино" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg>
+        </button>
+        <button id="hero-next" class="hero-arrow hero-arrow-right" type="button" aria-label="Дараагийн кино" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg>
+        </button>
+        <div id="hero-dots" class="hero-dots"></div>
+      </section>
+    </div>
+
+    <!-- One small button per genre. script.js fills this in. -->
+    <div id="genre-chips" class="chips"></div>
+
+    <!-- THE ROWS: "top rated", "new", "most watched".
+         script.js builds them. Hidden while you search or filter. -->
+    <div id="rows"></div>
+
+    <!-- EVERY MOVIE -->
+    <section id="all-movies" class="shelf">
       <div class="shelf-heading">
-        <h2>All movies</h2>
+        <h2 id="grid-heading">Бүх кино</h2>
         <span id="movie-count" class="movie-count"></span>
-        <input id="search-input" class="search" type="search" placeholder="Search movies" aria-label="Search movies">
       </div>
-
-      <!-- One small button per genre. script.js fills this in. -->
-      <div id="genre-chips" class="chips" hidden></div>
 
       <ul id="movie-list" class="movie-grid">
         <!-- Grey placeholder cards, shown until the real movies arrive -->
@@ -74,7 +142,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>Built with HTML, CSS, JavaScript, Supabase and Cloudflare Pages.</p>
+    <p>HTML, CSS, JavaScript, Supabase, Cloudflare ашиглан бүтээв.</p>
   </footer>
 
   <!-- ============================================================
@@ -83,17 +151,59 @@
        The browser handles the Esc key and the dark background.
        ============================================================ -->
 
+  <!-- ONE MOVIE: details, rent, like, rate -->
+  <dialog id="movie-dialog" class="dialog dialog-movie" aria-labelledby="movie-title">
+    <div class="dialog-body">
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+
+      <div class="movie-detail">
+        <div id="movie-poster" class="movie-detail-poster"></div>
+
+        <div class="movie-detail-text">
+          <p id="movie-genre" class="hero-label"></p>
+          <h2 id="movie-title"></h2>
+          <p id="movie-meta" class="movie-detail-meta"></p>
+          <p id="movie-description" class="movie-detail-description"></p>
+
+          <p id="movie-access" class="movie-access" hidden></p>
+
+          <div class="movie-detail-buttons">
+            <button id="movie-watch-button" class="button button-accent button-large" type="button" hidden></button>
+            <button id="movie-rent-button" class="button button-accent button-large" type="button" hidden></button>
+            <button id="movie-plan-button" class="button button-outline button-large" type="button" hidden>Гишүүнчлэл авах</button>
+          </div>
+
+          <div class="movie-detail-actions">
+            <button id="movie-like-button" class="like-button" type="button" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.500-4.600-7.500-10A4 4 0 0112 8a4 4 0 017.500 2.500c0 5.400-7.500 10-7.500 10z"/></svg>
+              <span id="movie-like-count">0</span>
+            </button>
+
+            <!-- Five stars. Each star is worth 2 points, so 5 stars = 10. -->
+            <div class="stars" role="group" aria-label="Үнэлгээ өгөх">
+              <span class="stars-label">Үнэлгээ өгөх</span>
+              <span id="movie-stars" class="stars-row"></span>
+            </div>
+          </div>
+
+          <button id="movie-delete-button" class="button button-danger" type="button" hidden>Кино устгах</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <!-- THE PLAYER -->
   <dialog id="player-dialog" class="dialog dialog-player" aria-labelledby="player-title">
     <div class="dialog-body">
-      <button id="player-close" class="dialog-close" type="button" aria-label="Close">
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
       <video id="player-video" controls playsinline></video>
       <div class="player-info">
         <h2 id="player-title"></h2>
-        <p id="player-year" class="player-year"></p>
-        <p id="player-description" class="player-description"></p>
+        <p id="player-meta" class="player-meta"></p>
       </div>
     </div>
   </dialog>
@@ -101,102 +211,136 @@
   <!-- LOG IN / SIGN UP -->
   <dialog id="login-dialog" class="dialog" aria-labelledby="login-heading">
     <div class="dialog-body dialog-padded">
-      <button class="dialog-close" type="button" aria-label="Close" data-close>
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <h2 id="login-heading">Sign in</h2>
-      <p class="dialog-hint">Sign in to upload your own movies.</p>
+      <h2 id="login-heading">Нэвтрэх</h2>
+      <p class="dialog-hint">Кино үзэхийн тулд нэвтэрнэ үү.</p>
 
       <form id="login-form">
-        <label for="email-input">Email</label>
+        <label for="email-input">Имэйл</label>
         <input id="email-input" type="email" autocomplete="email" required>
 
-        <label for="password-input">Password</label>
+        <label for="password-input">Нууц үг</label>
         <input id="password-input" type="password" autocomplete="current-password" minlength="6" required>
 
         <p id="login-message" class="form-message" role="status"></p>
 
-        <button id="login-button" class="button button-light button-wide" type="submit">Log in</button>
-        <button id="signup-button" class="button button-ghost button-wide" type="button">Create an account</button>
+        <button id="login-button" class="button button-accent button-wide" type="submit">Нэвтрэх</button>
+        <button id="signup-button" class="button button-ghost button-wide" type="button">Шинээр бүртгүүлэх</button>
       </form>
     </div>
   </dialog>
 
-  <!-- SUBSCRIBE -->
-  <dialog id="subscribe-dialog" class="dialog" aria-labelledby="subscribe-heading">
+  <!-- PAY FOR AN ORDER -->
+  <dialog id="order-dialog" class="dialog" aria-labelledby="order-heading">
     <div class="dialog-body dialog-padded">
-      <button class="dialog-close" type="button" aria-label="Close" data-close>
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <h2 id="subscribe-heading">Subscribe</h2>
-      <p class="price"><strong class="price-text"></strong> / month</p>
-      <p class="dialog-hint">Watch every movie for one month.</p>
+      <h2 id="order-heading">Төлбөр төлөх</h2>
+      <p id="order-item" class="dialog-hint"></p>
+      <p class="order-amount"><strong id="order-amount"></strong></p>
 
       <ol class="steps">
         <li>
-          Send <strong class="price-text"></strong> to this account:
+          Доорх данс руу шилжүүлнэ:
           <dl class="pay-box">
-            <dt>Bank</dt><dd id="pay-bank"></dd>
-            <dt>Account</dt><dd id="pay-account"></dd>
-            <dt>Name</dt><dd id="pay-name"></dd>
+            <dt>Банк</dt><dd id="pay-bank"></dd>
+            <dt>Данс</dt><dd id="pay-account"></dd>
+            <dt>Нэр</dt><dd id="pay-name"></dd>
           </dl>
         </li>
         <li>
-          Write your email in the payment description:
-          <strong id="pay-email" class="pay-email"></strong>
+          Гүйлгээний утга дээр зөвхөн энэ кодыг бичнэ:
+          <div class="order-code-row">
+            <strong id="order-code" class="order-code"></strong>
+            <button id="order-copy-button" class="button button-ghost" type="button">Хуулах</button>
+          </div>
         </li>
-        <li>We open your access after we see the payment, usually within a day.</li>
+        <li>Төлбөрийг шалгасны дараа эрх нээгдэнэ. Ихэвчлэн 1 өдрийн дотор.</li>
       </ol>
 
-      <p id="subscribe-message" class="form-message" role="status"></p>
-      <button id="subscribe-check-button" class="button button-light button-wide" type="button">I have paid, check now</button>
+      <p id="order-message" class="form-message" role="status"></p>
+      <button id="order-check-button" class="button button-accent button-wide" type="button">Төлсөн, шалгах</button>
+      <button id="order-cancel-button" class="button button-ghost button-wide" type="button">Захиалга цуцлах</button>
     </div>
   </dialog>
 
-  <!-- UPLOAD A MOVIE -->
-  <dialog id="upload-dialog" class="dialog" aria-labelledby="upload-heading">
+  <!-- ADMIN: confirm the payments -->
+  <dialog id="admin-dialog" class="dialog dialog-wide" aria-labelledby="admin-heading">
     <div class="dialog-body dialog-padded">
-      <button class="dialog-close" type="button" aria-label="Close" data-close>
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
-      <h2 id="upload-heading">Upload a movie</h2>
+      <h2 id="admin-heading">Захиалгууд</h2>
+      <p class="dialog-hint">Банкны гүйлгээний утга дээрх кодоор захиалгыг олж, дүн нь таарч байвал баталгаажуулна.</p>
+
+      <p id="admin-message" class="form-message" role="status"></p>
+
+      <h3 class="admin-subheading">Хүлээгдэж буй</h3>
+      <ul id="admin-pending" class="order-list"></ul>
+
+      <h3 class="admin-subheading">Сүүлийн 30 хоног</h3>
+      <ul id="admin-done" class="order-list"></ul>
+    </div>
+  </dialog>
+
+  <!-- UPLOAD A MOVIE (admins) -->
+  <dialog id="upload-dialog" class="dialog" aria-labelledby="upload-heading">
+    <div class="dialog-body dialog-padded">
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h2 id="upload-heading">Кино нэмэх</h2>
 
       <form id="movie-form">
         <!-- The file input is invisible and covers the whole box, so you
              can click the box or drop a file onto it. -->
         <div class="file-zone">
-          <input id="video-input" type="file" accept="video/mp4,video/webm" required aria-label="Video file">
+          <input id="video-input" type="file" accept="video/mp4,video/webm" required aria-label="Видео файл">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5m0 0l-4 4m4-4l4 4M5 19h14"/></svg>
-          <p id="video-zone-text" class="file-zone-text">Choose a video, or drop it here</p>
-          <p class="file-zone-hint">MP4 or WebM, up to 5 GB</p>
+          <p id="video-zone-text" class="file-zone-text">Видео сонгох, эсвэл энд чирж оруулна</p>
+          <p class="file-zone-hint">MP4 эсвэл WebM, 5 GB хүртэл</p>
+        </div>
+
+        <label for="title-input">Нэр</label>
+        <input id="title-input" type="text" maxlength="100" required>
+
+        <div class="form-row">
+          <div class="form-grow">
+            <label for="genre-input">Төрөл</label>
+            <select id="genre-input">
+              <option value="">Төрөлгүй</option>
+              <!-- script.js adds the genres here -->
+            </select>
+          </div>
+          <div class="form-small">
+            <label for="year-input">Он</label>
+            <input id="year-input" type="number" min="1888" max="2100">
+          </div>
         </div>
 
         <div class="form-row">
           <div class="form-grow">
-            <label for="title-input">Title</label>
-            <input id="title-input" type="text" maxlength="100" required>
+            <label for="price-input">Түрээсийн үнэ (₮)</label>
+            <input id="price-input" type="number" min="0" max="1000000" step="100" value="3000" required>
           </div>
-          <div class="form-year">
-            <label for="year-input">Year</label>
-            <input id="year-input" type="number" min="1888" max="2100" placeholder="Optional">
+          <div class="form-grow">
+            <label for="duration-input">Үргэлжлэх хугацаа (мин)</label>
+            <input id="duration-input" type="number" min="1" max="1000">
           </div>
         </div>
 
-        <label for="genre-input">Genre</label>
-        <select id="genre-input">
-          <option value="">No genre</option>
-          <!-- script.js adds the genres here -->
-        </select>
-
-        <label for="description-input">Description</label>
-        <textarea id="description-input" rows="2" maxlength="500" placeholder="Optional"></textarea>
+        <label for="description-input">Тайлбар</label>
+        <textarea id="description-input" rows="3" maxlength="500"></textarea>
 
         <div class="file-zone file-zone-small">
-          <input id="poster-input" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Poster picture">
+          <input id="poster-input" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Постер зураг">
           <img id="poster-preview" class="poster-preview" alt="" hidden>
           <div>
-            <p id="poster-zone-text" class="file-zone-text">Add a poster picture</p>
-            <p class="file-zone-hint">Optional. JPG, PNG or WebP, up to 2 MB</p>
+            <p id="poster-zone-text" class="file-zone-text">Постер зураг нэмэх</p>
+            <p class="file-zone-hint">JPG, PNG, WebP, 2 MB хүртэл. Постертой кино илүү сайхан харагдана.</p>
           </div>
         </div>
 
@@ -205,7 +349,7 @@
         </div>
         <p id="upload-message" class="form-message" role="status"></p>
 
-        <button id="upload-button" class="button button-light button-wide" type="submit">Upload</button>
+        <button id="upload-button" class="button button-accent button-wide" type="submit">Оруулах</button>
       </form>
     </div>
   </dialog>
