@@ -7,7 +7,12 @@
 // A video player does not ask for the whole file. It asks for small
 // parts: "give me bytes 1000000 to 2000000". That is a RANGE
 // request, and it is what makes jumping around in a movie work.
+//
+// Movies are for subscribers only. So every address must carry a
+// signature from /api/play. See functions/_signing.js.
 // ---------------------------------------------------------------
+
+import { isValid } from "../_signing.js";
 
 export async function onRequest(context) {
   const request = context.request;
@@ -20,7 +25,24 @@ export async function onRequest(context) {
     return new Response("The MOVIES bucket is not linked.", { status: 500 });
   }
 
+  if (!env.SIGNING_SECRET) {
+    return new Response("The SIGNING_SECRET is missing.", { status: 500 });
+  }
+
   const key = (context.params.path || []).join("/");
+
+  // Check the signature before touching the bucket.
+  const url = new URL(request.url);
+  const allowed = await isValid(
+    env.SIGNING_SECRET,
+    key,
+    url.searchParams.get("expires"),
+    url.searchParams.get("signature")
+  );
+
+  if (!allowed) {
+    return new Response("This link has expired. Open the movie again.", { status: 403 });
+  }
 
   // Passing the request headers lets R2 read the "Range" header
   // itself, and also "If-None-Match" (the browser saying "I already
@@ -44,8 +66,9 @@ export async function onRequest(context) {
   object.writeHttpMetadata(headers); // sets Content-Type: video/mp4
   headers.set("ETag", object.httpEtag);
   headers.set("Accept-Ranges", "bytes");
-  // A file never changes after upload, so browsers may keep it.
-  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  // "private" means: only this person's browser may keep a copy,
+  // not shared caches in between.
+  headers.set("Cache-Control", "private, max-age=3600");
 
   // No body means the browser already has this file (status 304).
   if (!object.body) {

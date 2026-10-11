@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------
-// SERVER CODE: big video uploads to Cloudflare R2
+// SERVER CODE: big video uploads to Cloudflare R2, and subscriptions
 //
 // This file does NOT run in the browser. It runs on Cloudflare's
 // computers. The file name [[path]].js means: run this code for
@@ -15,12 +15,19 @@
 //   POST   /api/upload/abort     "something broke, throw it away"
 //   DELETE /api/file             delete a finished video
 //
+// And for subscriptions:
+//
+//   GET    /api/me               "may I upload? am I subscribed?"
+//   POST   /api/play             "give me a link to watch this movie"
+//
 // env.MOVIES is the R2 bucket. Cloudflare gives it to this code
 // because of the "binding" you add in the dashboard. No keys needed.
 // ---------------------------------------------------------------
 
 // The same Supabase project as the website. This key is the public
 // one, so it is fine to have it here.
+import { LINK_SECONDS, sign } from "../_signing.js";
+
 const SUPABASE_URL = "https://xmkjrncoexgjcyjcaukf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_zy4lZL5239LLuA5Cbz1Gew_FNkccaUz";
 
@@ -48,11 +55,8 @@ function json(data, status) {
 // WHO IS ASKING?
 // The browser sends the login token. We do not trust it blindly:
 // we ask Supabase "is this token real, and whose is it?"
-// Then we check the email against the list of allowed uploaders.
-// Without that list, any stranger could sign up and fill the
-// bucket with files that YOU pay for.
 // ---------------------------------------------------------------
-async function getUser(request, env) {
+async function getUser(request) {
   const authorization = request.headers.get("Authorization") || "";
 
   if (!authorization.startsWith("Bearer ")) {
@@ -67,11 +71,17 @@ async function getUser(request, env) {
     throw new HttpError(401, "Your login has expired. Please log in again.");
   }
 
-  const user = await response.json();
+  return await response.json();
+}
 
-  // ALLOWED_EMAILS is an ENVIRONMENT VARIABLE: a setting you type in
-  // the Cloudflare dashboard, not in the code. Example value:
-  //   me@example.com, friend@example.com
+// May this person upload and delete movies?
+// Only the emails on the ALLOWED_EMAILS list may. Without that list,
+// any stranger could sign up and fill the bucket with files that
+// YOU pay for.
+// ALLOWED_EMAILS is an ENVIRONMENT VARIABLE: a setting you type in
+// the Cloudflare dashboard, not in the code. Example value:
+//   me@example.com, friend@example.com
+function isUploader(user, env) {
   const allowedEmails = (env.ALLOWED_EMAILS || "")
     .toLowerCase()
     .split(",")
@@ -80,14 +90,30 @@ async function getUser(request, env) {
     })
     .filter(Boolean);
 
-  if (allowedEmails.length === 0) {
-    throw new HttpError(500, "Uploads are not set up: the ALLOWED_EMAILS variable is missing.");
-  }
-  if (!user.email || !allowedEmails.includes(user.email.toLowerCase())) {
-    throw new HttpError(403, "This account is not allowed to upload.");
+  return Boolean(user.email) && allowedEmails.includes(user.email.toLowerCase());
+}
+
+// Until when has this person paid? Returns a date, or null.
+// We ask the Supabase database with the person's own login token,
+// so the database's own rules apply: they can only see their own row.
+async function getPaidUntil(request, user) {
+  const response = await fetch(
+    SUPABASE_URL + "/rest/v1/subscriptions?select=paid_until&user_id=eq." + user.id,
+    {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: request.headers.get("Authorization"),
+      },
+    }
+  );
+
+  if (!response.ok) {
+    console.error("Could not read subscriptions:", response.status, await response.text());
+    throw new HttpError(500, "Could not check your subscription. Please try again.");
   }
 
-  return user;
+  const rows = await response.json();
+  return rows.length > 0 ? new Date(rows[0].paid_until) : null;
 }
 
 // Every file lives in a folder named after its owner's id.
@@ -99,7 +125,53 @@ function checkOwnKey(user, key) {
 }
 
 // ---------------------------------------------------------------
-// THE ROUTES
+// THE ROUTES: subscriptions
+// ---------------------------------------------------------------
+
+// The website asks this after login, to know which buttons to show.
+async function getMe(request, env, user) {
+  if (isUploader(user, env)) {
+    return json({ canUpload: true, subscribedUntil: null });
+  }
+
+  const paidUntil = await getPaidUntil(request, user);
+  return json({
+    canUpload: false,
+    subscribedUntil: paidUntil ? paidUntil.toISOString() : null,
+  });
+}
+
+// Give a subscriber a link that plays one movie for a few hours.
+async function play(request, env, user) {
+  const body = await request.json();
+
+  // A real path looks like: <user id>/<random name>.mp4
+  if (typeof body.key !== "string" || !/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(mp4|webm)$/.test(body.key)) {
+    throw new HttpError(400, "That is not a movie.");
+  }
+
+  if (!isUploader(user, env)) {
+    const paidUntil = await getPaidUntil(request, user);
+    if (!paidUntil || paidUntil < new Date()) {
+      // 402 is the status number for "payment required".
+      throw new HttpError(402, "Subscribe to watch this movie.");
+    }
+  }
+
+  if (!env.SIGNING_SECRET) {
+    throw new HttpError(500, "Watching is not set up: the SIGNING_SECRET is missing.");
+  }
+
+  const expires = Math.floor(Date.now() / 1000) + LINK_SECONDS;
+  const signature = await sign(env.SIGNING_SECRET, body.key, expires);
+
+  return json({
+    url: "/files/" + body.key + "?expires=" + expires + "&signature=" + signature,
+  });
+}
+
+// ---------------------------------------------------------------
+// THE ROUTES: uploads
 // ---------------------------------------------------------------
 async function startUpload(request, env, user) {
   const body = await request.json();
@@ -205,21 +277,29 @@ export async function onRequest(context) {
       throw new HttpError(500, "Uploads are not set up: the MOVIES bucket is not linked.");
     }
 
+    // "uploader: true" marks the routes that only uploaders may use.
     const routes = {
-      "POST upload/start": startUpload,
-      "PUT upload/part": uploadPart,
-      "POST upload/complete": completeUpload,
-      "POST upload/abort": abortUpload,
-      "DELETE file": deleteFile,
+      "GET me": { handler: getMe },
+      "POST play": { handler: play },
+      "POST upload/start": { handler: startUpload, uploader: true },
+      "PUT upload/part": { handler: uploadPart, uploader: true },
+      "POST upload/complete": { handler: completeUpload, uploader: true },
+      "POST upload/abort": { handler: abortUpload, uploader: true },
+      "DELETE file": { handler: deleteFile, uploader: true },
     };
 
-    const handler = routes[route];
-    if (!handler) {
+    const found = routes[route];
+    if (!found) {
       throw new HttpError(404, "There is nothing at this address.");
     }
 
-    const user = await getUser(request, env);
-    return await handler(request, env, user);
+    const user = await getUser(request);
+
+    if (found.uploader && !isUploader(user, env)) {
+      throw new HttpError(403, "This account is not allowed to upload.");
+    }
+
+    return await found.handler(request, env, user);
   } catch (error) {
     if (error instanceof HttpError) {
       return json({ message: error.message }, error.status);

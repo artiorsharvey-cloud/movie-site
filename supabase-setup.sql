@@ -170,3 +170,83 @@ alter table public.movies add column if not exists video_store text
 
 grant select (video_store) on table public.movies to anon, authenticated;
 grant insert (video_store) on table public.movies to authenticated;
+
+-- ================================================================
+-- STAGE 5: SUBSCRIPTIONS
+-- ================================================================
+
+-- One row per paying person: until when have they paid?
+create table if not exists public.subscriptions (
+  user_id uuid primary key
+    references auth.users (id) on delete cascade,
+
+  -- The moment the subscription ends.
+  paid_until timestamptz not null,
+
+  updated_at timestamptz not null default now()
+);
+
+alter table public.subscriptions enable row level security;
+
+revoke all on table public.subscriptions from anon, authenticated;
+
+-- A logged-in person may READ their own row. That is all.
+-- There is no INSERT, UPDATE or DELETE permission, so nobody can
+-- give themselves a subscription from the browser. This is the most
+-- important rule of the whole stage.
+grant select on table public.subscriptions to authenticated;
+
+drop policy if exists "See your own subscription" on public.subscriptions;
+create policy "See your own subscription"
+  on public.subscriptions
+  for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+-- A helper for YOU, the owner. After a customer pays, run this in
+-- the SQL Editor:
+--
+--   select public.give_month('customer@example.com');
+--
+-- It adds one month for that account. If they still have time left,
+-- the month is added on the end. For three months at once:
+--
+--   select public.give_month('customer@example.com', 3);
+create or replace function public.give_month(customer_email text, months integer default 1)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  customer_id uuid;
+  new_end timestamptz;
+begin
+  if months < 1 or months > 24 then
+    raise exception 'months must be between 1 and 24';
+  end if;
+
+  select id into customer_id
+  from auth.users
+  where lower(email) = lower(btrim(customer_email));
+
+  if customer_id is null then
+    raise exception 'No account with the email %', customer_email;
+  end if;
+
+  insert into public.subscriptions (user_id, paid_until)
+  values (customer_id, now() + make_interval(months => months))
+  on conflict (user_id) do update
+    set paid_until = greatest(public.subscriptions.paid_until, now())
+                     + make_interval(months => months),
+        updated_at = now()
+  returning paid_until into new_end;
+
+  return new_end;
+end;
+$$;
+
+-- Only you, in the SQL Editor, may run the helper. Without this
+-- line, any visitor could call it and give themselves free months.
+revoke execute on function public.give_month(text, integer)
+  from public, anon, authenticated;

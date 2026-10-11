@@ -108,6 +108,16 @@ p {
   background: rgba(255, 255, 255, 0.16);
 }
 
+/* Colored button: Subscribe */
+.button-accent {
+  background: var(--accent);
+  color: white;
+}
+
+.button-accent:hover:not(:disabled) {
+  background: #ff7350;
+}
+
 .button-large {
   font-size: 16px;
   padding: 13px 28px;
@@ -191,6 +201,16 @@ p {
   text-transform: uppercase;
 }
 
+/* The small "Subscribed until ..." label */
+.status-pill {
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 90, 54, 0.5);
+  border-radius: 999px;
+  color: #ffb4a2;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 /* ---------------------------------------------------------------
    THE HERO
    --------------------------------------------------------------- */
@@ -223,6 +243,18 @@ p {
 
 .hero-backdrop video.ready {
   opacity: 1;
+}
+
+/* A poster is tall and the hero is wide. So we make the poster very
+   big and blurry: it becomes soft colors, not a stretched picture. */
+.hero-backdrop img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(40px) saturate(1.3);
+  transform: scale(1.3);
 }
 
 /* Two dark fades on top of the picture: one from the bottom, one
@@ -424,6 +456,18 @@ p {
   transform: scale(1);
 }
 
+/* The big first letter on a card with no picture */
+.movie-letter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, #2c2c36, #17171c);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 72px;
+  font-weight: 800;
+}
+
 .movie-title {
   margin-top: 12px;
   font-weight: 600;
@@ -565,6 +609,57 @@ p {
   stroke: var(--text);
   stroke-width: 2;
   stroke-linecap: round;
+}
+
+/* The Subscribe window */
+.price {
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.price strong {
+  color: var(--text);
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.steps {
+  margin: 20px 0 0;
+  padding-left: 20px;
+}
+
+.steps li {
+  margin-top: 14px;
+  padding-left: 4px;
+}
+
+.pay-box {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin: 10px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 14px;
+}
+
+.pay-box dt {
+  color: var(--muted);
+}
+
+.pay-box dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.pay-email {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--accent);
 }
 
 /* The player is a much wider pop-up */
@@ -857,6 +952,11 @@ textarea {
 
   #logout-button {
     padding: 9px 12px;
+  }
+
+  /* Not enough room in the top bar on a phone */
+  .status-pill {
+    display: none;
   }
 
   .dialog-padded {

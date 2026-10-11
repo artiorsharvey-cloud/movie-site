@@ -7,7 +7,19 @@
 // STAGE 3: genres and search
 // STAGE 4: big videos (up to 5 GB) go to Cloudflare R2, through
 //          our own server code in the functions folder
+// STAGE 5: subscriptions. Big movies are only for people who paid.
 // ---------------------------------------------------------------
+
+// The price shown on the site.
+const PRICE_TEXT = "15,000₮";
+
+// WHERE CUSTOMERS SEND THE MONEY.
+// Change these three lines to your real bank details.
+const PAYMENT = {
+  bank: "Khan Bank",
+  account: "0000000000",
+  name: "Harvey",
+};
 
 // Same Supabase project as the earlier websites.
 const SUPABASE_URL = "https://xmkjrncoexgjcyjcaukf.supabase.co";
@@ -21,8 +33,11 @@ const openLoginButton = document.getElementById("open-login-button");
 const openUploadButton = document.getElementById("open-upload-button");
 const myAvatar = document.getElementById("my-avatar");
 const logoutButton = document.getElementById("logout-button");
+const openSubscribeButton = document.getElementById("open-subscribe-button");
+const subscriptionStatus = document.getElementById("subscription-status");
 
 const heroVideo = document.getElementById("hero-video");
+const heroImage = document.getElementById("hero-image");
 const heroLabel = document.getElementById("hero-label");
 const heroTitle = document.getElementById("hero-title");
 const heroDescription = document.getElementById("hero-description");
@@ -47,6 +62,11 @@ const passwordInput = document.getElementById("password-input");
 const loginButton = document.getElementById("login-button");
 const signupButton = document.getElementById("signup-button");
 const loginMessage = document.getElementById("login-message");
+
+const subscribeDialog = document.getElementById("subscribe-dialog");
+const payEmail = document.getElementById("pay-email");
+const subscribeCheckButton = document.getElementById("subscribe-check-button");
+const subscribeMessage = document.getElementById("subscribe-message");
 
 const uploadDialog = document.getElementById("upload-dialog");
 const movieForm = document.getElementById("movie-form");
@@ -93,6 +113,10 @@ const POSTER_ZONE_TEXT = posterZoneText.textContent;
 // Who is logged in right now. null means nobody.
 let currentUser = null;
 
+// What the server told us about the logged-in person:
+// may they upload, and until when have they paid?
+let me = { canUpload: false, subscribedUntil: null };
+
 // The movie shown in the big hero at the top. null means none.
 let heroMovie = null;
 
@@ -131,20 +155,21 @@ function fileUrl(path) {
   return data.publicUrl;
 }
 
-// The web address of a movie's video.
-// Old small videos are in Supabase Storage. New big ones are in
-// Cloudflare R2, and our own server code at /files/ sends them.
-function videoUrl(row) {
-  if (row.video_store === "r2") {
-    return "/files/" + row.video_path;
-  }
-  return fileUrl(row.video_path);
+// Old small videos are in Supabase Storage and free for everyone.
+// New big ones are in Cloudflare R2 and only for subscribers.
+function isPaidMovie(row) {
+  return row.video_store === "r2";
 }
 
-// The address of one still picture from a video.
+// The address of one still picture from a FREE video.
 // "#t=2" tells the browser: show the picture at second 2.
 function videoFrameUrl(row) {
-  return videoUrl(row) + "#t=2";
+  return fileUrl(row.video_path) + "#t=2";
+}
+
+// Has this person paid, and is the time not over yet?
+function isSubscribed() {
+  return me.subscribedUntil !== null && new Date(me.subscribedUntil) > new Date();
 }
 
 // The small grey line under a title: "2025 · Drama", "2025", "Drama" or "".
@@ -159,13 +184,67 @@ function showHeader() {
   const loggedIn = currentUser !== null;
 
   openLoginButton.hidden = loggedIn;
-  openUploadButton.hidden = !loggedIn;
+  openUploadButton.hidden = !me.canUpload;
   myAvatar.hidden = !loggedIn;
   logoutButton.hidden = !loggedIn;
+
+  // Uploaders watch for free, so they see neither of these two.
+  const isCustomer = loggedIn && !me.canUpload;
+  openSubscribeButton.hidden = !isCustomer || isSubscribed();
+  subscriptionStatus.hidden = !isCustomer || !isSubscribed();
 
   if (loggedIn) {
     myAvatar.textContent = currentUser.email.charAt(0);
     myAvatar.title = currentUser.email;
+  }
+  if (isSubscribed()) {
+    subscriptionStatus.textContent = "Subscribed until " +
+      new Date(me.subscribedUntil).toLocaleDateString(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+  }
+}
+
+// Ask the server: may I upload, and am I subscribed?
+// The browser cannot decide this itself. Anything decided in the
+// browser can be changed by the visitor, so the server decides and
+// the browser only SHOWS the answer.
+async function loadMe() {
+  me = { canUpload: false, subscribedUntil: null };
+
+  if (currentUser) {
+    try {
+      me = await callApi("GET", "me");
+    } catch (error) {
+      console.error("Could not load your account:", error);
+    }
+  }
+
+  showHeader();
+}
+
+function openSubscribe() {
+  payEmail.textContent = currentUser.email;
+  showFormMessage(subscribeMessage, "");
+  subscribeDialog.showModal();
+}
+
+// The "I have paid" button: ask the server again.
+async function checkSubscription() {
+  subscribeCheckButton.disabled = true;
+  showFormMessage(subscribeMessage, "Checking...");
+
+  await loadMe();
+
+  subscribeCheckButton.disabled = false;
+
+  if (isSubscribed()) {
+    subscribeDialog.close();
+    showToast("You are subscribed. Enjoy the movies!");
+  } else {
+    showFormMessage(subscribeMessage, "No payment found yet. It can take up to a day after you pay.");
   }
 }
 
@@ -197,6 +276,7 @@ db.auth.onAuthStateChange(function (event, session) {
   // the database anything.
   // Reload the movies too, so the Delete buttons match who is logged in.
   setTimeout(loadMovies, 0);
+  setTimeout(loadMe, 0);
 });
 
 // ---------------------------------------------------------------
@@ -213,6 +293,7 @@ function showHero(row) {
     heroButton.textContent = "Upload a movie";
     heroVideo.classList.remove("ready");
     heroVideo.removeAttribute("src");
+    heroImage.hidden = true;
     return;
   }
 
@@ -221,6 +302,22 @@ function showHero(row) {
   heroTitle.textContent = heroMovie.title;
   heroDescription.textContent = heroMovie.description || "";
   heroButton.innerHTML = PLAY_ICON + "Play";
+
+  // The background picture.
+  // A free movie shows one still picture from its video.
+  // A paid movie must not hand out its video, so it shows its poster,
+  // made big and blurry. With no poster, the colored glow stays.
+  if (isPaidMovie(heroMovie)) {
+    heroVideo.classList.remove("ready");
+    heroVideo.removeAttribute("src");
+    heroImage.hidden = !heroMovie.poster_path;
+    if (heroMovie.poster_path) {
+      heroImage.src = fileUrl(heroMovie.poster_path);
+    }
+    return;
+  }
+
+  heroImage.hidden = true;
 
   // Only change the picture when the movie changed, so it does not flash.
   const frameUrl = videoFrameUrl(heroMovie);
@@ -332,6 +429,13 @@ function showMovies(animate) {
       image.alt = "";
       image.loading = "lazy"; // only download when scrolled into view
       poster.appendChild(image);
+    } else if (isPaidMovie(row)) {
+      // No poster, and the video is for subscribers only: show the
+      // first letter of the title.
+      const letter = document.createElement("span");
+      letter.className = "movie-letter";
+      letter.textContent = row.title.charAt(0).toUpperCase();
+      poster.appendChild(letter);
     } else {
       // No poster: show one still picture from the video instead.
       // preload = "metadata" downloads only a tiny part of the file.
@@ -402,11 +506,39 @@ function showMovies(animate) {
 // The browser does not download the whole video first. It asks
 // storage for small pieces as you watch. This is called STREAMING.
 // ---------------------------------------------------------------
-function playMovie(row) {
+async function playMovie(row) {
+  let address = null;
+
+  if (isPaidMovie(row)) {
+    if (!currentUser) {
+      showFormMessage(loginMessage, "Sign in to watch this movie.");
+      loginDialog.showModal();
+      return;
+    }
+
+    // Ask the server for a watching link. The server checks the
+    // subscription. The link works for a few hours.
+    try {
+      const answer = await callApi("POST", "play", { key: row.video_path });
+      address = answer.url;
+    } catch (error) {
+      // 402 means "payment required".
+      if (error.status === 402) {
+        openSubscribe();
+      } else {
+        console.error("Could not open movie:", error);
+        showToast("Error: " + error.message);
+      }
+      return;
+    }
+  } else {
+    address = fileUrl(row.video_path);
+  }
+
   playerTitle.textContent = row.title;
   playerYear.textContent = yearAndGenre(row);
   playerDescription.textContent = row.description || "";
-  playerVideo.src = videoUrl(row);
+  playerVideo.src = address;
   playerDialog.showModal();
   // play() can be refused by the browser. Then the visitor just
   // presses the play button themselves.
@@ -559,7 +691,9 @@ async function callApi(method, path, body) {
   }
 
   if (!response.ok) {
-    throw new Error(answer.message || "The server said: " + response.status);
+    const error = new Error(answer.message || "The server said: " + response.status);
+    error.status = response.status; // so the caller can tell 402 from 500
+    throw error;
   }
   return answer;
 }
@@ -950,6 +1084,16 @@ openLoginButton.addEventListener("click", function () {
   loginDialog.showModal();
 });
 openUploadButton.addEventListener("click", openUpload);
+openSubscribeButton.addEventListener("click", openSubscribe);
+subscribeCheckButton.addEventListener("click", checkSubscription);
+
+// Put the price and the bank details into the Subscribe window.
+for (const element of document.querySelectorAll(".price-text")) {
+  element.textContent = PRICE_TEXT;
+}
+document.getElementById("pay-bank").textContent = PAYMENT.bank;
+document.getElementById("pay-account").textContent = PAYMENT.account;
+document.getElementById("pay-name").textContent = PAYMENT.name;
 
 // The big hero button plays the newest movie. With no movies, it
 // opens the upload window instead.
@@ -968,7 +1112,7 @@ playerDialog.addEventListener("close", stopPlayer);
 
 // For every pop-up window: the X button closes it, and so does a
 // click on the dark background around it.
-for (const dialog of [playerDialog, loginDialog, uploadDialog]) {
+for (const dialog of [playerDialog, loginDialog, uploadDialog, subscribeDialog]) {
   dialog.addEventListener("click", function (event) {
     if (event.target === dialog || event.target.closest("[data-close]")) {
       dialog.close();
