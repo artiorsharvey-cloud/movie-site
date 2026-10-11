@@ -5,6 +5,8 @@
 // STAGE 2: a modern design: top bar, big hero, poster cards,
 //          pop-up windows, and a real upload progress line
 // STAGE 3: genres and search
+// STAGE 4: big videos (up to 5 GB) go to Cloudflare R2, through
+//          our own server code in the functions folder
 // ---------------------------------------------------------------
 
 // Same Supabase project as the earlier websites.
@@ -64,7 +66,7 @@ const uploadProgressBar = document.getElementById("upload-progress-bar");
 
 // These must match the limits in supabase-setup.sql
 const BUCKET = "movies";
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
+const MAX_VIDEO_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB (also in functions/api)
 const MAX_POSTER_BYTES = 2 * 1024 * 1024; // 2 MB
 const VIDEO_TYPES = {
   "video/mp4": "mp4",
@@ -129,10 +131,20 @@ function fileUrl(path) {
   return data.publicUrl;
 }
 
+// The web address of a movie's video.
+// Old small videos are in Supabase Storage. New big ones are in
+// Cloudflare R2, and our own server code at /files/ sends them.
+function videoUrl(row) {
+  if (row.video_store === "r2") {
+    return "/files/" + row.video_path;
+  }
+  return fileUrl(row.video_path);
+}
+
 // The address of one still picture from a video.
 // "#t=2" tells the browser: show the picture at second 2.
-function videoFrameUrl(path) {
-  return fileUrl(path) + "#t=2";
+function videoFrameUrl(row) {
+  return videoUrl(row) + "#t=2";
 }
 
 // The small grey line under a title: "2025 · Drama", "2025", "Drama" or "".
@@ -211,7 +223,7 @@ function showHero(row) {
   heroButton.innerHTML = PLAY_ICON + "Play";
 
   // Only change the picture when the movie changed, so it does not flash.
-  const frameUrl = videoFrameUrl(heroMovie.video_path);
+  const frameUrl = videoFrameUrl(heroMovie);
   if (heroVideo.getAttribute("src") !== frameUrl) {
     heroVideo.classList.remove("ready");
     heroVideo.src = frameUrl;
@@ -229,7 +241,7 @@ heroVideo.addEventListener("loadeddata", function () {
 async function loadMovies() {
   const { data, error } = await db
     .from("movies")
-    .select("id, user_id, title, year, genre, description, video_path, poster_path")
+    .select("id, user_id, title, year, genre, description, video_path, video_store, poster_path")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -324,7 +336,7 @@ function showMovies(animate) {
       // No poster: show one still picture from the video instead.
       // preload = "metadata" downloads only a tiny part of the file.
       const frame = document.createElement("video");
-      frame.src = videoFrameUrl(row.video_path);
+      frame.src = videoFrameUrl(row);
       frame.preload = "metadata";
       frame.muted = true;
       frame.playsInline = true;
@@ -394,7 +406,7 @@ function playMovie(row) {
   playerTitle.textContent = row.title;
   playerYear.textContent = yearAndGenre(row);
   playerDescription.textContent = row.description || "";
-  playerVideo.src = fileUrl(row.video_path);
+  playerVideo.src = videoUrl(row);
   playerDialog.showModal();
   // play() can be refused by the browser. Then the visitor just
   // presses the play button themselves.
@@ -412,13 +424,17 @@ function stopPlayer() {
 // ---------------------------------------------------------------
 // THE FILE BOXES IN THE UPLOAD WINDOW
 // ---------------------------------------------------------------
-function megabytes(bytes) {
-  return (bytes / 1024 / 1024).toFixed(1) + " MB";
+function fileSize(bytes) {
+  const megabytes = bytes / 1024 / 1024;
+  if (megabytes >= 1024) {
+    return (megabytes / 1024).toFixed(2) + " GB";
+  }
+  return megabytes.toFixed(1) + " MB";
 }
 
 function showChosenVideo() {
   const file = videoInput.files[0];
-  videoZoneText.textContent = file ? file.name + " (" + megabytes(file.size) + ")" : VIDEO_ZONE_TEXT;
+  videoZoneText.textContent = file ? file.name + " (" + fileSize(file.size) + ")" : VIDEO_ZONE_TEXT;
   videoInput.parentElement.classList.toggle("has-file", Boolean(file));
 
   // Helpful: use the file name as the title if the title is empty.
@@ -449,10 +465,11 @@ function setUploadProgress(fraction) {
 
 // ---------------------------------------------------------------
 // UPLOAD A MOVIE
-// Two files go to storage, then one row goes to the database.
+// The video goes to Cloudflare R2, the poster goes to Supabase
+// Storage, then one row goes to the database.
 // ---------------------------------------------------------------
 
-// Send one file to storage.
+// Send one small file (the poster) to Supabase Storage.
 // Before, we used db.storage.upload(). It works, but it cannot tell
 // us how far the upload is. XMLHttpRequest is an older browser tool
 // that CAN, so we talk to the storage address ourselves here.
@@ -507,7 +524,184 @@ async function uploadFile(file, extension, onProgress) {
   });
 }
 
+// ---------------------------------------------------------------
+// BIG VIDEOS: talk to our own server code (the functions folder)
+// ---------------------------------------------------------------
+
+// The access token proves to the server who is logged in.
+// Supabase swaps it for a fresh one about once an hour, so we ask
+// for it again before every request. A big upload can take longer
+// than an hour.
+async function accessToken() {
+  const { data } = await db.auth.getSession();
+  if (!data.session) {
+    throw new Error("You are logged out. Please log in again.");
+  }
+  return data.session.access_token;
+}
+
+// Send a small question to /api/... and get the answer back.
+async function callApi(method, path, body) {
+  const response = await fetch("/api/" + path, {
+    method: method,
+    headers: {
+      Authorization: "Bearer " + (await accessToken()),
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  let answer = {};
+  try {
+    answer = await response.json();
+  } catch (parseError) {
+    // The answer was not JSON. Keep the empty answer.
+  }
+
+  if (!response.ok) {
+    throw new Error(answer.message || "The server said: " + response.status);
+  }
+  return answer;
+}
+
+// Send ONE piece of the video. onProgress gets the bytes sent so far.
+function sendPart(address, token, piece, onProgress) {
+  return new Promise(function (resolve, reject) {
+    const request = new XMLHttpRequest();
+    request.open("PUT", address);
+    request.setRequestHeader("Authorization", "Bearer " + token);
+
+    request.upload.addEventListener("progress", function (event) {
+      onProgress(event.loaded);
+    });
+
+    request.addEventListener("load", function () {
+      let answer = {};
+      try {
+        answer = JSON.parse(request.responseText);
+      } catch (parseError) {
+        // The answer was not JSON. Keep the empty answer.
+      }
+
+      if (request.status >= 200 && request.status < 300) {
+        resolve(answer);
+      } else {
+        const error = new Error(answer.message || "The server said: " + request.status);
+        // 401 and 403 mean "you may not do this". Trying again will
+        // not help, so remember not to.
+        error.giveUp = request.status === 401 || request.status === 403;
+        reject(error);
+      }
+    });
+
+    request.addEventListener("error", function () {
+      reject(new Error("Network problem. Check your internet."));
+    });
+
+    request.send(piece);
+  });
+}
+
+function wait(milliseconds) {
+  return new Promise(function (resolve) {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
+// Send the whole video, piece by piece. See functions/api for the
+// server side of this. onProgress gets the total bytes sent so far.
+async function uploadBigVideo(file, onProgress) {
+  let started = null;
+
+  try {
+    // 1. Ask the server to start. It answers with the file's path,
+    //    an upload id, and how big each piece must be.
+    started = await callApi("POST", "upload/start", {
+      contentType: file.type,
+      size: file.size,
+    });
+
+    // 2. Send the pieces, one after another.
+    const pieceCount = Math.ceil(file.size / started.partSize);
+    const parts = [];
+
+    for (let number = 1; number <= pieceCount; number++) {
+      const begin = (number - 1) * started.partSize;
+      // slice() cuts one piece out of the file. It does not load the
+      // file into memory, so even 4 GB is fine.
+      const piece = file.slice(begin, begin + started.partSize);
+      const address =
+        "/api/upload/part?key=" + encodeURIComponent(started.key) +
+        "&uploadId=" + encodeURIComponent(started.uploadId) +
+        "&partNumber=" + number;
+
+      // The internet can hiccup during a long upload. If a piece
+      // fails, wait a little and send the same piece again.
+      for (let attempt = 1; ; attempt++) {
+        try {
+          const part = await sendPart(address, await accessToken(), piece, function (sent) {
+            onProgress(begin + sent);
+          });
+          parts.push(part);
+          break;
+        } catch (error) {
+          if (error.giveUp || attempt === 4) {
+            throw error;
+          }
+          await wait(attempt * 2000);
+        }
+      }
+    }
+
+    // 3. Tell the server it has all the pieces.
+    await callApi("POST", "upload/complete", {
+      key: started.key,
+      uploadId: started.uploadId,
+      parts: parts,
+    });
+
+    return { path: started.key, error: null };
+  } catch (error) {
+    // Throw away the pieces that did arrive. Unfinished uploads
+    // still take up space in the bucket.
+    if (started) {
+      try {
+        await callApi("POST", "upload/abort", { key: started.key, uploadId: started.uploadId });
+      } catch (abortError) {
+        console.error("Could not cancel the upload:", abortError);
+      }
+    }
+
+    // Opened by double-click, the page has no server behind it.
+    if (location.protocol === "file:") {
+      return { path: null, error: new Error("Uploading only works on the live site (pages.dev), not on a file opened from your computer.") };
+    }
+    return { path: null, error: error };
+  }
+}
+
+// Delete a video from R2. Used when a movie is deleted, or when
+// saving the movie row failed after the upload.
+async function deleteBigVideo(path) {
+  try {
+    await callApi("DELETE", "file?key=" + encodeURIComponent(path));
+  } catch (error) {
+    console.error("Could not delete the video file:", error);
+  }
+}
+
+// True while a movie is uploading.
+let uploading = false;
+
+// Ask "are you sure?" if the tab is closed in the middle of an upload.
+window.addEventListener("beforeunload", function (event) {
+  if (uploading) {
+    event.preventDefault();
+  }
+});
+
 function finishUpload() {
+  uploading = false;
   uploadButton.disabled = false;
   uploadProgress.hidden = true;
   setUploadProgress(0);
@@ -535,7 +729,7 @@ async function addMovie(event) {
     return;
   }
   if (videoFile.size > MAX_VIDEO_BYTES) {
-    showFormMessage(uploadMessage, "The video must be 50 MB or smaller. This one is " + megabytes(videoFile.size) + ".", true);
+    showFormMessage(uploadMessage, "The video must be 5 GB or smaller. This one is " + fileSize(videoFile.size) + ".", true);
     return;
   }
   if (posterFile) {
@@ -549,17 +743,21 @@ async function addMovie(event) {
     }
   }
 
+  uploading = true;
   uploadButton.disabled = true;
   uploadProgress.hidden = false;
   setUploadProgress(0);
+  showFormMessage(uploadMessage, "Starting upload...");
 
-  // Remember what we uploaded, so we can clean up if a later step fails.
-  const uploadedPaths = [];
-
-  // STEP 1: upload the video.
-  const video = await uploadFile(videoFile, VIDEO_TYPES[videoFile.type], function (fraction) {
+  // STEP 1: upload the video to Cloudflare R2, piece by piece.
+  const video = await uploadBigVideo(videoFile, function (sentBytes) {
+    const fraction = sentBytes / videoFile.size;
     setUploadProgress(fraction);
-    showFormMessage(uploadMessage, "Uploading video... " + Math.round(fraction * 100) + "%");
+    showFormMessage(
+      uploadMessage,
+      "Uploading video... " + Math.floor(fraction * 100) + "% (" +
+        fileSize(sentBytes) + " of " + fileSize(videoFile.size) + "). Keep this page open."
+    );
   });
 
   if (video.error) {
@@ -568,9 +766,8 @@ async function addMovie(event) {
     finishUpload();
     return;
   }
-  uploadedPaths.push(video.path);
 
-  // STEP 2: upload the poster (if there is one).
+  // STEP 2: upload the poster to Supabase Storage (if there is one).
   let posterPath = null;
 
   if (posterFile) {
@@ -581,12 +778,11 @@ async function addMovie(event) {
     if (poster.error) {
       console.error("Could not upload poster:", poster.error);
       showFormMessage(uploadMessage, "Could not upload poster. " + poster.error.message, true);
-      await db.storage.from(BUCKET).remove(uploadedPaths);
+      await deleteBigVideo(video.path);
       finishUpload();
       return;
     }
     posterPath = poster.path;
-    uploadedPaths.push(poster.path);
   }
 
   // STEP 3: save the movie row, with the paths of the files.
@@ -598,18 +794,23 @@ async function addMovie(event) {
     genre: genreInput.value === "" ? null : genreInput.value,
     description: description === "" ? null : description,
     video_path: video.path,
+    video_store: "r2",
     poster_path: posterPath,
   });
-
-  finishUpload();
 
   if (error) {
     console.error("Could not save movie:", error);
     showFormMessage(uploadMessage, "Could not save movie. " + error.message, true);
     // The row failed, so do not leave the uploaded files behind.
-    await db.storage.from(BUCKET).remove(uploadedPaths);
+    await deleteBigVideo(video.path);
+    if (posterPath) {
+      await db.storage.from(BUCKET).remove([posterPath]);
+    }
+    finishUpload();
     return;
   }
+
+  finishUpload();
 
   movieForm.reset();
   showChosenVideo();
@@ -639,14 +840,24 @@ async function deleteMovie(row, button) {
     showToast("Movie deleted.");
 
     // The files are separate from the row, so we remove them ourselves.
-    const paths = [row.video_path];
+    // The poster is always in Supabase Storage. The video is there
+    // too if it is an old one; new videos are in Cloudflare R2.
+    const paths = [];
     if (row.poster_path) {
       paths.push(row.poster_path);
     }
 
-    const { error: removeError } = await db.storage.from(BUCKET).remove(paths);
-    if (removeError) {
-      console.error("Movie deleted, but its files were not:", removeError);
+    if (row.video_store === "r2") {
+      await deleteBigVideo(row.video_path);
+    } else {
+      paths.push(row.video_path);
+    }
+
+    if (paths.length > 0) {
+      const { error: removeError } = await db.storage.from(BUCKET).remove(paths);
+      if (removeError) {
+        console.error("Movie deleted, but its files were not:", removeError);
+      }
     }
   }
 

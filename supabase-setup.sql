@@ -155,3 +155,18 @@ alter table public.movies add column if not exists genre text
 -- A new column is private until you allow it, like in stage 1.
 grant select (genre) on table public.movies to anon, authenticated;
 grant insert (genre) on table public.movies to authenticated;
+
+-- ================================================================
+-- STAGE 4: BIG VIDEOS IN CLOUDFLARE R2
+-- ================================================================
+
+-- Videos now live in one of two places: the old small ones are in
+-- Supabase Storage, the new big ones are in Cloudflare R2. This
+-- column remembers which place, so the website knows where to look.
+-- "default 'supabase'" fills in the movies that already exist.
+alter table public.movies add column if not exists video_store text
+  not null default 'supabase'
+  check (video_store in ('supabase', 'r2'));
+
+grant select (video_store) on table public.movies to anon, authenticated;
+grant insert (video_store) on table public.movies to authenticated;
