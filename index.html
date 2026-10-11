@@ -4,65 +4,170 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Movie Site</title>
+  <meta name="theme-color" content="#0a0a0d">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff5a36'/%3E%3Cpath d='M12 9v14l12-7z' fill='white'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Movie Site</h1>
+  <!-- THE TOP BAR: stays at the top while you scroll -->
+  <header id="site-header" class="site-header">
+    <a class="logo" href="#">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8"/>
+        <path d="M12 9v14l12-7z"/>
+      </svg>
+      <span>movie<strong>site</strong></span>
+    </a>
 
-  <p id="message" role="status"></p>
+    <div class="header-actions">
+      <!-- Shown when nobody is logged in -->
+      <button id="open-login-button" class="button button-ghost" type="button" hidden>Sign in</button>
 
-  <!-- THE PLAYER: hidden until you click a movie -->
-  <section id="player" hidden>
-    <video id="player-video" controls playsinline></video>
-    <h2 id="player-title"></h2>
-    <p id="player-description"></p>
-    <button id="player-close" type="button">Close</button>
-  </section>
+      <!-- Shown when somebody is logged in -->
+      <button id="open-upload-button" class="button button-light" type="button" hidden>Upload</button>
+      <span id="my-avatar" class="avatar" hidden></span>
+      <button id="logout-button" class="button button-ghost" type="button" hidden>Log out</button>
+    </div>
+  </header>
 
-  <!-- PART A: nobody is logged in -->
-  <section id="logged-out" hidden>
-    <h2>Log in to upload</h2>
-    <form id="login-form">
-      <label for="email-input">Email</label>
-      <input id="email-input" type="email" autocomplete="email" required>
+  <main>
+    <!-- THE HERO: the big picture at the top, showing the newest movie -->
+    <section id="hero" class="hero">
+      <div class="hero-backdrop">
+        <video id="hero-video" muted playsinline preload="metadata" tabindex="-1" aria-hidden="true"></video>
+      </div>
 
-      <label for="password-input">Password (at least 6 characters)</label>
-      <input id="password-input" type="password" autocomplete="current-password" minlength="6" required>
+      <div class="hero-content">
+        <p id="hero-label" class="hero-label"></p>
+        <h1 id="hero-title"></h1>
+        <p id="hero-description" class="hero-description"></p>
+        <button id="hero-button" class="button button-light button-large" type="button" hidden></button>
+      </div>
+    </section>
 
-      <button id="login-button" type="submit">Log in</button>
-      <button id="signup-button" type="button">Sign up</button>
-    </form>
-  </section>
+    <!-- THE MOVIES: always visible, even when nobody is logged in -->
+    <section class="shelf">
+      <div class="shelf-heading">
+        <h2>All movies</h2>
+        <span id="movie-count" class="movie-count"></span>
+      </div>
 
-  <!-- PART B: logged in -->
-  <section id="logged-in" hidden>
-    <p>Logged in as <strong id="my-email"></strong></p>
-    <button id="logout-button" type="button">Log out</button>
+      <ul id="movie-list" class="movie-grid">
+        <!-- Grey placeholder cards, shown until the real movies arrive -->
+        <li class="movie-card skeleton"><div class="movie-poster"></div></li>
+        <li class="movie-card skeleton"><div class="movie-poster"></div></li>
+        <li class="movie-card skeleton"><div class="movie-poster"></div></li>
+        <li class="movie-card skeleton"><div class="movie-poster"></div></li>
+        <li class="movie-card skeleton"><div class="movie-poster"></div></li>
+      </ul>
+    </section>
+  </main>
 
-    <h2>Upload a movie</h2>
-    <form id="movie-form">
-      <label for="title-input">Title</label>
-      <input id="title-input" type="text" maxlength="100" required>
+  <footer class="site-footer">
+    <p>Built with HTML, CSS, JavaScript, Supabase and Cloudflare Pages.</p>
+  </footer>
 
-      <label for="year-input">Year (optional)</label>
-      <input id="year-input" type="number" min="1888" max="2100">
+  <!-- ============================================================
+       POP-UP WINDOWS
+       A <dialog> is a pop-up that sits on top of the page.
+       The browser handles the Esc key and the dark background.
+       ============================================================ -->
 
-      <label for="description-input">Description (optional, up to 500 characters)</label>
-      <textarea id="description-input" rows="3" maxlength="500"></textarea>
+  <!-- THE PLAYER -->
+  <dialog id="player-dialog" class="dialog dialog-player" aria-labelledby="player-title">
+    <div class="dialog-body">
+      <button id="player-close" class="dialog-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <video id="player-video" controls playsinline></video>
+      <div class="player-info">
+        <h2 id="player-title"></h2>
+        <p id="player-year" class="player-year"></p>
+        <p id="player-description" class="player-description"></p>
+      </div>
+    </div>
+  </dialog>
 
-      <label for="video-input">Video file (MP4 or WebM, up to 50 MB)</label>
-      <input id="video-input" type="file" accept="video/mp4,video/webm" required>
+  <!-- LOG IN / SIGN UP -->
+  <dialog id="login-dialog" class="dialog" aria-labelledby="login-heading">
+    <div class="dialog-body dialog-padded">
+      <button class="dialog-close" type="button" aria-label="Close" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h2 id="login-heading">Sign in</h2>
+      <p class="dialog-hint">Sign in to upload your own movies.</p>
 
-      <label for="poster-input">Poster picture (optional, up to 2 MB)</label>
-      <input id="poster-input" type="file" accept="image/jpeg,image/png,image/webp">
+      <form id="login-form">
+        <label for="email-input">Email</label>
+        <input id="email-input" type="email" autocomplete="email" required>
 
-      <button id="upload-button" type="submit">Upload</button>
-    </form>
-  </section>
+        <label for="password-input">Password</label>
+        <input id="password-input" type="password" autocomplete="current-password" minlength="6" required>
 
-  <!-- THE MOVIES: always visible, even when nobody is logged in -->
-  <h2>Movies</h2>
-  <ul id="movie-list"></ul>
+        <p id="login-message" class="form-message" role="status"></p>
+
+        <button id="login-button" class="button button-light button-wide" type="submit">Log in</button>
+        <button id="signup-button" class="button button-ghost button-wide" type="button">Create an account</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- UPLOAD A MOVIE -->
+  <dialog id="upload-dialog" class="dialog" aria-labelledby="upload-heading">
+    <div class="dialog-body dialog-padded">
+      <button class="dialog-close" type="button" aria-label="Close" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h2 id="upload-heading">Upload a movie</h2>
+
+      <form id="movie-form">
+        <!-- The file input is invisible and covers the whole box, so you
+             can click the box or drop a file onto it. -->
+        <div class="file-zone">
+          <input id="video-input" type="file" accept="video/mp4,video/webm" required aria-label="Video file">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V5m0 0l-4 4m4-4l4 4M5 19h14"/></svg>
+          <p id="video-zone-text" class="file-zone-text">Choose a video, or drop it here</p>
+          <p class="file-zone-hint">MP4 or WebM, up to 50 MB</p>
+        </div>
+
+        <div class="form-row">
+          <div class="form-grow">
+            <label for="title-input">Title</label>
+            <input id="title-input" type="text" maxlength="100" required>
+          </div>
+          <div class="form-year">
+            <label for="year-input">Year</label>
+            <input id="year-input" type="number" min="1888" max="2100" placeholder="Optional">
+          </div>
+        </div>
+
+        <label for="description-input">Description</label>
+        <textarea id="description-input" rows="2" maxlength="500" placeholder="Optional"></textarea>
+
+        <div class="file-zone file-zone-small">
+          <input id="poster-input" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Poster picture">
+          <img id="poster-preview" class="poster-preview" alt="" hidden>
+          <div>
+            <p id="poster-zone-text" class="file-zone-text">Add a poster picture</p>
+            <p class="file-zone-hint">Optional. JPG, PNG or WebP, up to 2 MB</p>
+          </div>
+        </div>
+
+        <div id="upload-progress" class="progress" hidden>
+          <div id="upload-progress-bar" class="progress-bar"></div>
+        </div>
+        <p id="upload-message" class="form-message" role="status"></p>
+
+        <button id="upload-button" class="button button-light button-wide" type="submit">Upload</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- A small message that slides up from the bottom of the screen -->
+  <p id="message" class="toast" role="status"></p>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>

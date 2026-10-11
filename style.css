@@ -1,93 +1,819 @@
-body {
-  background: #111;
-  color: #eee;
-  font-family: system-ui, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 16px;
+/* ---------------------------------------------------------------
+   COLORS AND SIZES
+   These are CSS VARIABLES. Change a color here and it changes
+   everywhere on the site.
+   --------------------------------------------------------------- */
+:root {
+  /* Tell the browser this is a dark site, so scrollbars are dark too */
+  color-scheme: dark;
+  --bg: #0a0a0d;
+  --surface: #16161b;
+  --surface-2: #22222a;
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #f4f4f6;
+  --muted: #9c9ca8;
+  --accent: #ff5a36;
+  --danger: #ff6b6b;
+  --radius: 14px;
+  --page-padding: clamp(16px, 4vw, 56px);
 }
 
-label {
-  display: block;
-  margin-top: 10px;
-}
-
-input,
-textarea,
-button {
-  font: inherit;
-  padding: 6px 10px;
-  margin-top: 6px;
-}
-
-input,
-textarea {
-  display: block;
-  width: 100%;
-  max-width: 480px;
+* {
   box-sizing: border-box;
 }
 
-#message {
-  min-height: 1.5em;
+/* Anything with the "hidden" attribute stays hidden, even if a
+   rule below gives it a "display". */
+[hidden] {
+  display: none !important;
 }
 
-/* The player */
-#player-video {
-  display: block;
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+/* A clear outline for people who use the keyboard */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------
+   BUTTONS
+   --------------------------------------------------------------- */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 9px 18px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s, opacity 0.15s;
+}
+
+.button:active {
+  transform: scale(0.97);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.button svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* White button: the main action */
+.button-light {
+  background: var(--text);
+  color: #0a0a0d;
+}
+
+.button-light:hover:not(:disabled) {
+  background: #d9d9de;
+}
+
+/* See-through button: the quiet action */
+.button-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.button-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.button-large {
+  font-size: 16px;
+  padding: 13px 28px;
+}
+
+.button-wide {
   width: 100%;
-  max-height: 70vh;
-  background: black;
+  padding: 12px 18px;
+  margin-top: 10px;
 }
 
-#player-description {
-  white-space: pre-wrap;      /* keep line breaks the writer typed */
-  overflow-wrap: anywhere;    /* break very long words on phones */
+/* ---------------------------------------------------------------
+   THE TOP BAR
+   --------------------------------------------------------------- */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px var(--page-padding);
+  background: linear-gradient(rgba(10, 10, 13, 0.8), transparent);
+  transition: background 0.3s;
 }
 
-/* The movies: a grid of cards.
-   auto-fill means: fit as many 160px columns as the screen allows. */
-#movie-list {
-  list-style: none;
-  padding-left: 0;
+/* script.js adds "scrolled" when you scroll down the page */
+.site-header.scrolled {
+  background: rgba(10, 10, 13, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--line);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+}
+
+.logo strong {
+  font-weight: 800;
+}
+
+.logo svg {
+  width: 30px;
+  height: 30px;
+}
+
+.logo rect {
+  fill: var(--accent);
+}
+
+.logo path {
+  fill: white;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The round circle with the first letter of your email */
+.avatar {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 16px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------
+   THE HERO
+   --------------------------------------------------------------- */
+.hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: min(78vh, 760px);
+  padding: 120px var(--page-padding) 56px;
+  overflow: hidden;
+}
+
+/* The picture behind the words. When there is no movie, it is a
+   soft glow in the accent color. */
+.hero-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 80% at 80% 10%, rgba(255, 90, 54, 0.35), transparent 70%),
+    radial-gradient(50% 60% at 10% 90%, rgba(120, 80, 255, 0.2), transparent 70%);
+}
+
+.hero-backdrop video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.8s;
+  /* Slowly zoom in and out, so the picture feels alive */
+  animation: slow-zoom 24s ease-in-out infinite alternate;
+}
+
+.hero-backdrop video.ready {
+  opacity: 1;
+}
+
+/* Two dark fades on top of the picture: one from the bottom, one
+   from the left. They make the white words easy to read. */
+.hero-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to top, var(--bg) 0%, rgba(10, 10, 13, 0.5) 35%, transparent 70%),
+    linear-gradient(to right, rgba(10, 10, 13, 0.85) 0%, transparent 65%);
+}
+
+.hero-content {
+  position: relative;
+  max-width: 640px;
+  animation: rise 0.7s ease-out both;
+}
+
+.hero-label {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.hero h1 {
+  font-size: clamp(36px, 7vw, 76px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.hero-description {
+  margin-top: 18px;
+  color: #d0d0d8;
+  font-size: clamp(15px, 1.6vw, 18px);
+  /* Show at most 3 lines, then "..." */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hero .button {
+  margin-top: 28px;
+}
+
+/* ---------------------------------------------------------------
+   THE MOVIES
+   --------------------------------------------------------------- */
+.shelf {
+  padding: 8px var(--page-padding) 72px;
+}
+
+.shelf-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.shelf-heading h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.movie-count {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* auto-fill means: fit as many columns as the screen allows */
+.movie-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 32px 18px;
+}
+
+.movie-card {
+  position: relative;
+  animation: rise 0.5s ease-out both;
 }
 
 /* The poster is a button, so it can be clicked with the keyboard too */
 .movie-poster {
+  position: relative;
   display: block;
   width: 100%;
   aspect-ratio: 2 / 3;        /* the shape of a real movie poster */
   padding: 0;
-  margin: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius);
   overflow: hidden;
-  background: #333;
-  color: #eee;
-  font-size: 48px;
+  background: var(--surface-2);
   cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.movie-poster img {
+.movie-poster img,
+.movie-poster video {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;          /* fill the shape, cut off the extra */
+  transition: transform 0.4s ease;
+}
+
+/* A dark fade and a round play button, shown on hover */
+.movie-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.movie-play svg {
+  width: 56px;
+  height: 56px;
+  padding: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  fill: #0a0a0d;
+  transform: scale(0.8);
+  transition: transform 0.25s;
+}
+
+.movie-poster:hover,
+.movie-poster:focus-visible {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.movie-poster:hover img,
+.movie-poster:hover video {
+  transform: scale(1.06);
+}
+
+.movie-poster:hover .movie-play,
+.movie-poster:focus-visible .movie-play {
+  opacity: 1;
+}
+
+.movie-poster:hover .movie-play svg,
+.movie-poster:focus-visible .movie-play svg {
+  transform: scale(1);
 }
 
 .movie-title {
-  margin: 6px 0 0;
-  font-weight: bold;
+  margin-top: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.3;
   overflow-wrap: anywhere;
 }
 
 .movie-year {
-  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* The small round Delete button on your own movies */
+.movie-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(10, 10, 13, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.movie-delete svg {
+  width: 18px;
+  height: 18px;
+  fill: var(--text);
+}
+
+.movie-delete:hover {
+  background: #d43c3c;
+}
+
+/* Shown when there are no movies at all */
+.empty {
+  grid-column: 1 / -1;
+  padding: 48px 20px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Grey placeholder cards with a moving shine */
+.skeleton .movie-poster {
+  cursor: default;
+  background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);
+  background-size: 300% 100%;
+  animation: shine 1.4s linear infinite;
+}
+
+.site-footer {
+  padding: 28px var(--page-padding);
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------
+   POP-UP WINDOWS
+   --------------------------------------------------------------- */
+.dialog {
+  width: min(460px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+}
+
+.dialog[open] {
+  animation: pop 0.25s ease-out;
+}
+
+/* The dark, blurry layer between the pop-up and the page */
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dialog-body {
+  position: relative;
+}
+
+.dialog-padded {
+  padding: 28px;
+}
+
+.dialog h2 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.dialog-hint {
+  color: var(--muted);
   font-size: 14px;
-  color: #aaa;
+  margin-top: 4px;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(40, 40, 48, 0.85);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dialog-close:hover {
+  background: rgba(80, 80, 92, 0.95);
+}
+
+.dialog-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* The player is a much wider pop-up */
+.dialog-player {
+  width: min(1100px, calc(100vw - 24px));
+  background: #000;
+}
+
+#player-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 72dvh;
+  background: #000;
+}
+
+.player-info {
+  padding: 20px 24px 26px;
+  background: var(--surface);
+}
+
+.player-year {
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 2px;
+}
+
+.player-description {
+  margin-top: 12px;
+  color: #d0d0d8;
+  white-space: pre-wrap;      /* keep line breaks the writer typed */
+  overflow-wrap: anywhere;    /* break very long words on phones */
+}
+
+/* ---------------------------------------------------------------
+   FORMS
+   --------------------------------------------------------------- */
+form {
+  margin-top: 18px;
+}
+
+label {
+  display: block;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  transition: border-color 0.15s;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+textarea {
+  resize: vertical;
+}
+
+::placeholder {
+  color: #5c5c68;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-grow {
+  flex: 1;
+}
+
+.form-year {
+  width: 110px;
+}
+
+/* The box you click or drop a file on */
+.file-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 22px 16px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius);
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.file-zone:hover,
+.file-zone:focus-within {
+  border-color: var(--accent);
+  background: rgba(255, 90, 54, 0.06);
+}
+
+/* script.js adds "has-file" after you choose a file */
+.file-zone.has-file {
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* The real file input: invisible, but it covers the whole box */
+.file-zone input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-zone > svg {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 6px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.file-zone-text {
+  font-weight: 600;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.file-zone-hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.file-zone-small {
+  flex-direction: row;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  text-align: left;
+}
+
+.poster-preview {
+  width: 40px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.form-message {
+  min-height: 1.5em;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.form-message.error {
+  color: var(--danger);
+}
+
+/* The upload progress line */
+.progress {
+  height: 6px;
+  margin-top: 16px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.progress-bar {
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+
+/* ---------------------------------------------------------------
+   THE SMALL MESSAGE AT THE BOTTOM
+   --------------------------------------------------------------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 20;
+  max-width: calc(100vw - 32px);
+  padding: 12px 20px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+  opacity: 0;
+  transform: translate(-50%, 20px);
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------------------------------------------------------------
+   MOVEMENT
+   --------------------------------------------------------------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+
+@keyframes slow-zoom {
+  to {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+/* Some people get dizzy from movement and turn it off in their
+   computer settings. Respect that. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------------------------------------------------------------
+   PHONES
+   --------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .movie-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px 12px;
+  }
+
+  .hero {
+    min-height: 68vh;
+    padding-bottom: 36px;
+  }
+
+  .logo span {
+    font-size: 18px;
+  }
+
+  #logout-button {
+    padding: 9px 12px;
+  }
+
+  .dialog-padded {
+    padding: 22px 18px;
+  }
 }
