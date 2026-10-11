@@ -53,7 +53,11 @@
       <div class="shelf-heading">
         <h2>All movies</h2>
         <span id="movie-count" class="movie-count"></span>
+        <input id="search-input" class="search" type="search" placeholder="Search movies" aria-label="Search movies">
       </div>
+
+      <!-- One small button per genre. script.js fills this in. -->
+      <div id="genre-chips" class="chips" hidden></div>
 
       <ul id="movie-list" class="movie-grid">
         <!-- Grey placeholder cards, shown until the real movies arrive -->
@@ -143,6 +147,12 @@
             <input id="year-input" type="number" min="1888" max="2100" placeholder="Optional">
           </div>
         </div>
+
+        <label for="genre-input">Genre</label>
+        <select id="genre-input">
+          <option value="">No genre</option>
+          <!-- script.js adds the genres here -->
+        </select>
 
         <label for="description-input">Description</label>
         <textarea id="description-input" rows="2" maxlength="500" placeholder="Optional"></textarea>

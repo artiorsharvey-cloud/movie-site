@@ -219,8 +219,6 @@ p {
   object-fit: cover;
   opacity: 0;
   transition: opacity 0.8s;
-  /* Slowly zoom in and out, so the picture feels alive */
-  animation: slow-zoom 24s ease-in-out infinite alternate;
 }
 
 .hero-backdrop video.ready {
@@ -299,6 +297,49 @@ p {
 .movie-count {
   color: var(--muted);
   font-size: 14px;
+}
+
+/* The search box sits at the right end of the heading line */
+.shelf-heading .search {
+  width: min(260px, 100%);
+  margin: 0 0 0 auto;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 14px;
+}
+
+/* The row of genre buttons */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.chip {
+  padding: 7px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.chip:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* The genre that is chosen right now */
+.chip[aria-pressed="true"] {
+  background: var(--text);
+  border-color: var(--text);
+  color: #0a0a0d;
 }
 
 /* auto-fill means: fit as many columns as the screen allows */
@@ -577,6 +618,8 @@ input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="number"],
+input[type="search"],
+select,
 textarea {
   display: block;
   width: 100%;
@@ -591,6 +634,7 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -729,7 +773,7 @@ textarea {
   max-width: calc(100vw - 32px);
   padding: 12px 20px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 18px;
   background: var(--surface-2);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
   font-size: 14px;
@@ -758,12 +802,6 @@ textarea {
   from {
     opacity: 0;
     transform: translateY(12px) scale(0.97);
-  }
-}
-
-@keyframes slow-zoom {
-  to {
-    transform: scale(1.08);
   }
 }
 
@@ -798,6 +836,14 @@ textarea {
   .movie-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 24px 12px;
+  }
+
+  .shelf-heading {
+    flex-wrap: wrap;
+  }
+
+  .shelf-heading .search {
+    width: 100%;
   }
 
   .hero {

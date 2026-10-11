@@ -4,6 +4,7 @@
 //          everyone can see the movies and watch them
 // STAGE 2: a modern design: top bar, big hero, poster cards,
 //          pop-up windows, and a real upload progress line
+// STAGE 3: genres and search
 // ---------------------------------------------------------------
 
 // Same Supabase project as the earlier websites.
@@ -27,6 +28,8 @@ const heroButton = document.getElementById("hero-button");
 
 const movieList = document.getElementById("movie-list");
 const movieCount = document.getElementById("movie-count");
+const searchInput = document.getElementById("search-input");
+const genreChips = document.getElementById("genre-chips");
 
 const playerDialog = document.getElementById("player-dialog");
 const playerVideo = document.getElementById("player-video");
@@ -47,6 +50,7 @@ const uploadDialog = document.getElementById("upload-dialog");
 const movieForm = document.getElementById("movie-form");
 const titleInput = document.getElementById("title-input");
 const yearInput = document.getElementById("year-input");
+const genreInput = document.getElementById("genre-input");
 const descriptionInput = document.getElementById("description-input");
 const videoInput = document.getElementById("video-input");
 const videoZoneText = document.getElementById("video-zone-text");
@@ -71,6 +75,10 @@ const POSTER_TYPES = {
   "image/png": "png",
   "image/webp": "webp",
 };
+const GENRES = [
+  "Action", "Comedy", "Drama", "Horror", "Sci-Fi",
+  "Animation", "Documentary", "Music", "Other",
+];
 
 // Small drawings (icons) used on the cards and buttons.
 const PLAY_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
@@ -85,6 +93,13 @@ let currentUser = null;
 
 // The movie shown in the big hero at the top. null means none.
 let heroMovie = null;
+
+// Every movie we got from the database. Search and the genre
+// buttons pick from this list, without asking the database again.
+let allMovies = [];
+
+// The genre button that is pressed. null means "All".
+let chosenGenre = null;
 
 // ---------------------------------------------------------------
 // SMALL HELPERS
@@ -118,6 +133,11 @@ function fileUrl(path) {
 // "#t=2" tells the browser: show the picture at second 2.
 function videoFrameUrl(path) {
   return fileUrl(path) + "#t=2";
+}
+
+// The small grey line under a title: "2025 · Drama", "2025", "Drama" or "".
+function yearAndGenre(row) {
+  return [row.year, row.genre].filter(Boolean).join(" · ");
 }
 
 // ---------------------------------------------------------------
@@ -184,7 +204,8 @@ function showHero(row) {
     return;
   }
 
-  heroLabel.textContent = heroMovie.year ? "Latest upload · " + heroMovie.year : "Latest upload";
+  const details = yearAndGenre(heroMovie);
+  heroLabel.textContent = details ? "Latest upload · " + details : "Latest upload";
   heroTitle.textContent = heroMovie.title;
   heroDescription.textContent = heroMovie.description || "";
   heroButton.innerHTML = PLAY_ICON + "Play";
@@ -208,7 +229,7 @@ heroVideo.addEventListener("loadeddata", function () {
 async function loadMovies() {
   const { data, error } = await db
     .from("movies")
-    .select("id, user_id, title, year, description, video_path, poster_path")
+    .select("id, user_id, title, year, genre, description, video_path, poster_path")
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -218,8 +239,54 @@ async function loadMovies() {
     return;
   }
 
+  allMovies = data;
+
   // The newest movie goes in the hero.
-  showHero(data[0]);
+  showHero(allMovies[0]);
+  showGenreChips();
+  showMovies(true);
+}
+
+// ---------------------------------------------------------------
+// GENRE BUTTONS
+// One button for "All", then one for each genre.
+// ---------------------------------------------------------------
+function showGenreChips() {
+  genreChips.innerHTML = "";
+  genreChips.hidden = false;
+
+  for (const genre of [null].concat(GENRES)) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.textContent = genre || "All";
+    // aria-pressed tells screen readers (and our CSS) which one is on.
+    chip.setAttribute("aria-pressed", String(genre === chosenGenre));
+    chip.addEventListener("click", function () {
+      chosenGenre = genre;
+      showGenreChips();
+      showMovies(false);
+    });
+    genreChips.appendChild(chip);
+  }
+}
+
+// ---------------------------------------------------------------
+// SHOW THE MOVIE CARDS
+// Keeps only the movies that match the search box and the chosen
+// genre. This is called FILTERING. It happens here in the browser,
+// which is fine for a small site. A site with thousands of movies
+// would ask the database to filter instead.
+// "animate" says if the cards should slide in.
+// ---------------------------------------------------------------
+function showMovies(animate) {
+  const search = searchInput.value.trim().toLowerCase();
+
+  const data = allMovies.filter(function (row) {
+    const genreMatches = chosenGenre === null || row.genre === chosenGenre;
+    const searchMatches = search === "" || row.title.toLowerCase().includes(search);
+    return genreMatches && searchMatches;
+  });
 
   movieList.innerHTML = "";
   movieCount.textContent = data.length === 1 ? "1 movie" : data.length + " movies";
@@ -227,7 +294,9 @@ async function loadMovies() {
   if (data.length === 0) {
     const item = document.createElement("li");
     item.className = "empty";
-    item.textContent = "No movies yet. Be the first to upload one.";
+    item.textContent = allMovies.length === 0
+      ? "No movies yet. Be the first to upload one."
+      : "No movies match. Try another search or genre.";
     movieList.appendChild(item);
     return;
   }
@@ -278,15 +347,21 @@ async function loadMovies() {
 
     const item = document.createElement("li");
     item.className = "movie-card";
-    // Each card appears a little later than the one before it.
-    item.style.animationDelay = Math.min(index, 12) * 40 + "ms";
+    if (animate) {
+      // Each card appears a little later than the one before it.
+      item.style.animationDelay = Math.min(index, 12) * 40 + "ms";
+    } else {
+      // No sliding while you type in the search box.
+      item.style.animation = "none";
+    }
     item.appendChild(poster);
     item.appendChild(title);
 
-    if (row.year) {
+    const details = yearAndGenre(row);
+    if (details) {
       const year = document.createElement("p");
       year.className = "movie-year";
-      year.textContent = row.year;
+      year.textContent = details;
       item.appendChild(year);
     }
 
@@ -317,7 +392,7 @@ async function loadMovies() {
 // ---------------------------------------------------------------
 function playMovie(row) {
   playerTitle.textContent = row.title;
-  playerYear.textContent = row.year || "";
+  playerYear.textContent = yearAndGenre(row);
   playerDescription.textContent = row.description || "";
   playerVideo.src = fileUrl(row.video_path);
   playerDialog.showModal();
@@ -520,6 +595,7 @@ async function addMovie(event) {
   const { error } = await db.from("movies").insert({
     title: title,
     year: year,
+    genre: genreInput.value === "" ? null : genreInput.value,
     description: description === "" ? null : description,
     video_path: video.path,
     poster_path: posterPath,
@@ -687,6 +763,19 @@ for (const dialog of [playerDialog, loginDialog, uploadDialog]) {
       dialog.close();
     }
   });
+}
+
+// "input" fires on every letter typed in the search box.
+searchInput.addEventListener("input", function () {
+  showMovies(false);
+});
+
+// Fill the Genre list in the upload window from GENRES.
+for (const genre of GENRES) {
+  const option = document.createElement("option");
+  option.value = genre;
+  option.textContent = genre;
+  genreInput.appendChild(option);
 }
 
 window.addEventListener("scroll", updateHeaderBackground, { passive: true });

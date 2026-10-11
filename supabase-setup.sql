@@ -137,3 +137,21 @@ create policy "Delete your own movie files"
     bucket_id = 'movies'
     and (storage.foldername(name))[1] = (select auth.uid())::text
   );
+
+-- ================================================================
+-- STAGE 3: GENRES
+-- ================================================================
+
+-- "alter table" changes a table that already exists. Here it adds
+-- one new column. Movies uploaded before today get an empty genre.
+-- The check allows only the genres in this list. The same list is
+-- in script.js (GENRES), and the two must match.
+alter table public.movies add column if not exists genre text
+  check (genre in (
+    'Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi',
+    'Animation', 'Documentary', 'Music', 'Other'
+  ));
+
+-- A new column is private until you allow it, like in stage 1.
+grant select (genre) on table public.movies to anon, authenticated;
+grant insert (genre) on table public.movies to authenticated;
