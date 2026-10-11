@@ -17,8 +17,8 @@ const PRICE_TEXT = "15,000₮";
 // Change these three lines to your real bank details.
 const PAYMENT = {
   bank: "Khan Bank",
-  account: "0000000000",
-  name: "Harvey",
+  account: "7005005244142000",
+  name: "Byambagaraw Erdenebat",
 };
 
 // Same Supabase project as the earlier websites.
