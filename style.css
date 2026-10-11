@@ -1,0 +1,93 @@
+body {
+  background: #111;
+  color: #eee;
+  font-family: system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+  padding: 6px 10px;
+  margin-top: 6px;
+}
+
+input,
+textarea {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+}
+
+#message {
+  min-height: 1.5em;
+}
+
+/* The player */
+#player-video {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  background: black;
+}
+
+#player-description {
+  white-space: pre-wrap;      /* keep line breaks the writer typed */
+  overflow-wrap: anywhere;    /* break very long words on phones */
+}
+
+/* The movies: a grid of cards.
+   auto-fill means: fit as many 160px columns as the screen allows. */
+#movie-list {
+  list-style: none;
+  padding-left: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+/* The poster is a button, so it can be clicked with the keyboard too */
+.movie-poster {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;        /* the shape of a real movie poster */
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #333;
+  color: #eee;
+  font-size: 48px;
+  cursor: pointer;
+}
+
+.movie-poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;          /* fill the shape, cut off the extra */
+}
+
+.movie-title {
+  margin: 6px 0 0;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+}
+
+.movie-year {
+  margin: 0;
+  font-size: 14px;
+  color: #aaa;
+}

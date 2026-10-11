@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Movie Site</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Movie Site</h1>
+
+  <p id="message" role="status"></p>
+
+  <!-- THE PLAYER: hidden until you click a movie -->
+  <section id="player" hidden>
+    <video id="player-video" controls playsinline></video>
+    <h2 id="player-title"></h2>
+    <p id="player-description"></p>
+    <button id="player-close" type="button">Close</button>
+  </section>
+
+  <!-- PART A: nobody is logged in -->
+  <section id="logged-out" hidden>
+    <h2>Log in to upload</h2>
+    <form id="login-form">
+      <label for="email-input">Email</label>
+      <input id="email-input" type="email" autocomplete="email" required>
+
+      <label for="password-input">Password (at least 6 characters)</label>
+      <input id="password-input" type="password" autocomplete="current-password" minlength="6" required>
+
+      <button id="login-button" type="submit">Log in</button>
+      <button id="signup-button" type="button">Sign up</button>
+    </form>
+  </section>
+
+  <!-- PART B: logged in -->
+  <section id="logged-in" hidden>
+    <p>Logged in as <strong id="my-email"></strong></p>
+    <button id="logout-button" type="button">Log out</button>
+
+    <h2>Upload a movie</h2>
+    <form id="movie-form">
+      <label for="title-input">Title</label>
+      <input id="title-input" type="text" maxlength="100" required>
+
+      <label for="year-input">Year (optional)</label>
+      <input id="year-input" type="number" min="1888" max="2100">
+
+      <label for="description-input">Description (optional, up to 500 characters)</label>
+      <textarea id="description-input" rows="3" maxlength="500"></textarea>
+
+      <label for="video-input">Video file (MP4 or WebM, up to 50 MB)</label>
+      <input id="video-input" type="file" accept="video/mp4,video/webm" required>
+
+      <label for="poster-input">Poster picture (optional, up to 2 MB)</label>
+      <input id="poster-input" type="file" accept="image/jpeg,image/png,image/webp">
+
+      <button id="upload-button" type="submit">Upload</button>
+    </form>
+  </section>
+
+  <!-- THE MOVIES: always visible, even when nobody is logged in -->
+  <h2>Movies</h2>
+  <ul id="movie-list"></ul>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js"></script>
+</body>
+</html>
