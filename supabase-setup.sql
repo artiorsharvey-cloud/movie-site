@@ -991,3 +991,102 @@ end;
 $$;
 
 revoke execute on function public.telegram_ask_updates() from public, anon, authenticated;
+
+-- ================================================================
+-- STAGE 9: AN EMAIL TO THE OWNER FOR EVERY NEW ORDER
+-- ================================================================
+
+-- Send one email to the owner through the Resend service.
+-- Two secrets in the Supabase Vault are needed:
+--   resend_api_key  the key from resend.com
+--   owner_email     where the alerts go
+-- If one of them is missing, nothing is sent.
+create or replace function public.send_owner_email(subject text, message text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_key text;
+  v_to text;
+begin
+  select s.decrypted_secret into v_key
+  from vault.decrypted_secrets s where s.name = 'resend_api_key';
+  select s.decrypted_secret into v_to
+  from vault.decrypted_secrets s where s.name = 'owner_email';
+
+  if v_key is null or v_to is null then
+    return false;
+  end if;
+
+  perform net.http_post(
+    url := 'https://api.resend.com/emails',
+    body := jsonb_build_object(
+      'from', 'KINO <onboarding@resend.dev>',
+      'to', jsonb_build_array(btrim(v_to)),
+      'subject', subject,
+      'text', message
+    ),
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || btrim(v_key)
+    )
+  );
+  return true;
+end;
+$$;
+
+revoke execute on function public.send_owner_email(text, text) from public, anon, authenticated;
+
+-- The new-order message now goes to Telegram AND to email.
+-- Each one is skipped by itself if it is not set up.
+create or replace function public.notify_new_order()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text;
+  v_item text;
+  v_text text;
+begin
+  select u.email::text into v_email from auth.users u where u.id = new.user_id;
+
+  if new.kind = 'plan' then
+    select 'Багц: ' || p.name into v_item from public.plans p where p.id = new.plan_id;
+  else
+    select 'Түрээс: ' || m.title into v_item from public.movies m where m.id = new.movie_id;
+  end if;
+
+  v_text :=
+    'Шинэ захиалга' || chr(10) ||
+    'Код: ' || new.code || chr(10) ||
+    'Дүн: ' || to_char(new.amount, 'FM999,999,999') || '₮' || chr(10) ||
+    coalesce(v_item, '') || chr(10) ||
+    'Хэрэглэгч: ' || coalesce(v_email, '');
+
+  begin
+    perform public.send_telegram(v_text);
+  exception when others then
+    null;
+  end;
+
+  begin
+    perform public.send_owner_email(
+      'Шинэ захиалга ' || new.code || ' · ' || to_char(new.amount, 'FM999,999,999') || '₮',
+      v_text
+    );
+  exception when others then
+    null;
+  end;
+
+  return new;
+exception when others then
+  -- A problem with the message must never stop the order itself.
+  return new;
+end;
+$$;
+
+revoke execute on function public.notify_new_order() from public, anon, authenticated;
