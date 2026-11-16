@@ -1121,3 +1121,21 @@ drop trigger if exists users_confirm_at_signup on auth.users;
 create trigger users_confirm_at_signup
   before insert on auth.users
   for each row execute function public.confirm_new_user();
+
+
+-- ===============================================================
+-- STAGE 11: FOUR CATEGORIES
+--
+-- The site now has only these categories. ("Шинэ кино" is not in
+-- the list: that row is automatic, it shows the newest movies.)
+-- The same list is in script.js (GENRES), and the two must match.
+-- A movie with an old category keeps working, with no category.
+-- ===============================================================
+alter table public.movies drop constraint if exists movies_genre_check;
+
+update public.movies set genre = null
+  where genre is not null
+    and genre not in ('Солонгос кино', 'Холливүүд кино', 'Хятад кино', 'Америк reel кино');
+
+alter table public.movies add constraint movies_genre_check
+  check (genre in ('Солонгос кино', 'Холливүүд кино', 'Хятад кино', 'Америк reel кино'));

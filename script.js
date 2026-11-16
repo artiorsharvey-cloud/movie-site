@@ -46,10 +46,12 @@ const POSTER_TYPES = {
   "image/png": "png",
   "image/webp": "webp",
 };
+// The categories a movie can be in. The front page shows one row
+// for each, after the "Шинэ кино" row (that one is automatic: the
+// newest movies). The same list is in the database (see STAGE 11
+// in supabase-setup.sql), and the two must match.
 const GENRES = [
-  "Түүхэн", "Орчин үеийн", "Монгол", "Азийн драма", "Драм",
-  "Тулаант", "Аймшиг", "Инээдмийн", "Романтик", "Триллер",
-  "Адал явдал", "Хүүхдийн", "Баримтат", "Бусад",
+  "Солонгос кино", "Холливүүд кино", "Хятад кино", "Америк reel кино",
 ];
 
 // How many posters one row on the front page shows.
