@@ -75,22 +75,28 @@ async function getUser(request) {
 }
 
 // May this person upload and delete movies?
-// Only the emails on the ALLOWED_EMAILS list may. Without that list,
-// any stranger could sign up and fill the bucket with files that
-// YOU pay for.
-// ALLOWED_EMAILS is an ENVIRONMENT VARIABLE: a setting you type in
-// the Cloudflare dashboard, not in the code. Example value:
-//   me@example.com, friend@example.com
-function isUploader(user, env) {
-  const allowedEmails = (env.ALLOWED_EMAILS || "")
-    .toLowerCase()
-    .split(",")
-    .map(function (email) {
-      return email.trim();
-    })
-    .filter(Boolean);
+// Only the admins of the site may. Without this check, any stranger
+// could sign up and fill the bucket with files that YOU pay for.
+// The list of admins is the "admins" table in Supabase. We ask the
+// database's is_admin function with the person's own login token,
+// so the answer is about THEM.
+async function isUploader(request) {
+  const response = await fetch(SUPABASE_URL + "/rest/v1/rpc/is_admin", {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: request.headers.get("Authorization"),
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  });
 
-  return Boolean(user.email) && allowedEmails.includes(user.email.toLowerCase());
+  if (!response.ok) {
+    console.error("Could not ask is_admin:", response.status, await response.text());
+    throw new HttpError(500, "Could not check your account. Please try again.");
+  }
+
+  return (await response.json()) === true;
 }
 
 // Until when has this person paid? Returns a date, or null.
@@ -154,7 +160,7 @@ async function canWatch(request, key) {
 
 // The website asks this after login, to know which buttons to show.
 async function getMe(request, env, user) {
-  if (isUploader(user, env)) {
+  if (await isUploader(request)) {
     return json({ canUpload: true, subscribedUntil: null });
   }
 
@@ -174,7 +180,7 @@ async function play(request, env, user) {
     throw new HttpError(400, "That is not a movie.");
   }
 
-  if (!isUploader(user, env)) {
+  if (!(await isUploader(request))) {
     if (!(await canWatch(request, body.key))) {
       // 402 is the status number for "payment required".
       throw new HttpError(402, "Subscribe or rent to watch this movie.");
@@ -318,7 +324,7 @@ export async function onRequest(context) {
 
     const user = await getUser(request);
 
-    if (found.uploader && !isUploader(user, env)) {
+    if (found.uploader && !(await isUploader(request))) {
       throw new HttpError(403, "This account is not allowed to upload.");
     }
 

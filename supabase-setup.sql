@@ -882,3 +882,112 @@ $$;
 
 revoke execute on function public.count_view(bigint) from public;
 grant execute on function public.count_view(bigint) to anon, authenticated;
+
+-- ================================================================
+-- STAGE 8: A TELEGRAM MESSAGE FOR EVERY NEW ORDER
+-- ================================================================
+
+-- pg_net lets the database send a web request.
+create extension if not exists pg_net;
+
+-- Send one Telegram message to the owner. The bot token and the
+-- chat id are kept in the Supabase Vault (a locked box for secrets)
+-- under the names telegram_bot_token and telegram_chat_id.
+-- If one of them is missing, nothing is sent.
+create or replace function public.send_telegram(message text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_token text;
+  v_chat text;
+begin
+  select s.decrypted_secret into v_token
+  from vault.decrypted_secrets s where s.name = 'telegram_bot_token';
+  select s.decrypted_secret into v_chat
+  from vault.decrypted_secrets s where s.name = 'telegram_chat_id';
+
+  if v_token is null or v_chat is null then
+    return false;
+  end if;
+
+  perform net.http_post(
+    url := 'https://api.telegram.org/bot' || btrim(v_token) || '/sendMessage',
+    body := jsonb_build_object('chat_id', btrim(v_chat), 'text', message),
+    headers := jsonb_build_object('Content-Type', 'application/json')
+  );
+  return true;
+end;
+$$;
+
+-- Nobody may call this from the browser.
+revoke execute on function public.send_telegram(text) from public, anon, authenticated;
+
+-- Runs by itself after every new order.
+create or replace function public.notify_new_order()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text;
+  v_item text;
+begin
+  select u.email::text into v_email from auth.users u where u.id = new.user_id;
+
+  if new.kind = 'plan' then
+    select 'Багц: ' || p.name into v_item from public.plans p where p.id = new.plan_id;
+  else
+    select 'Түрээс: ' || m.title into v_item from public.movies m where m.id = new.movie_id;
+  end if;
+
+  perform public.send_telegram(
+    'Шинэ захиалга' || chr(10) ||
+    'Код: ' || new.code || chr(10) ||
+    'Дүн: ' || to_char(new.amount, 'FM999,999,999') || '₮' || chr(10) ||
+    coalesce(v_item, '') || chr(10) ||
+    'Хэрэглэгч: ' || coalesce(v_email, '')
+  );
+  return new;
+exception when others then
+  -- A problem with the message must never stop the order itself.
+  return new;
+end;
+$$;
+
+revoke execute on function public.notify_new_order() from public, anon, authenticated;
+
+drop trigger if exists orders_notify on public.orders;
+create trigger orders_notify
+  after insert on public.orders
+  for each row execute function public.notify_new_order();
+
+-- A helper for setting up: asks Telegram "who wrote to my bot?".
+-- The answer arrives a moment later in net._http_response, under
+-- the number this function gives back. Your chat id is in it.
+create or replace function public.telegram_ask_updates()
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_token text;
+begin
+  select s.decrypted_secret into v_token
+  from vault.decrypted_secrets s where s.name = 'telegram_bot_token';
+
+  if v_token is null then
+    raise exception 'There is no secret named telegram_bot_token in the Vault.';
+  end if;
+
+  return net.http_get(
+    url := 'https://api.telegram.org/bot' || btrim(v_token) || '/getUpdates'
+  );
+end;
+$$;
+
+revoke execute on function public.telegram_ask_updates() from public, anon, authenticated;
