@@ -6,17 +6,18 @@
 :root {
   /* Tell the browser this is a dark site, so scrollbars are dark too */
   color-scheme: dark;
-  --bg: #050b1f;
-  --surface: #0b1430;
-  --surface-2: #152043;
+  /* The colors of the BEST КИНО logo: bright lime on black */
+  --bg: #050505;
+  --surface: #121212;
+  --surface-2: #1e1e1e;
   --line: rgba(255, 255, 255, 0.1);
-  --text: #f2f5fa;
-  --muted: #93a1b5;
-  --accent: #ff5a2c;
-  --accent-strong: #ff7a45;
-  --accent-ink: #ffffff;       /* text ON the accent color */
-  /* The orange-to-red color of the big buttons */
-  --accent-gradient: linear-gradient(90deg, #ff3d2e, #ff8a3d);
+  --text: #f4f5f2;
+  --muted: #9a9d94;
+  --accent: #cdf711;
+  --accent-strong: #dcff4a;
+  --accent-ink: #0a0a0a;       /* text ON the accent color */
+  /* The lime color of the big buttons */
+  --accent-gradient: linear-gradient(90deg, #c4f000, #dcff4a);
   --danger: #ff6b6b;
   --good: #5fd08a;
   --radius: 14px;
@@ -28,14 +29,17 @@
    script.js puts data-theme="light" on the <html> element. */
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f3f5f9;
+  --bg: #f4f5f1;
   --surface: #ffffff;
-  --surface-2: #e8ecf3;
-  --line: rgba(15, 25, 45, 0.12);
-  --text: #101826;
-  --muted: #5d6878;
-  --accent: #f04a1d;
-  --accent-strong: #ff5a2c;
+  --surface-2: #e9ebe4;
+  --line: rgba(20, 25, 10, 0.12);
+  --text: #121410;
+  --muted: #62665a;
+  /* Bright lime cannot be read on white, so here it is darker */
+  --accent: #557000;
+  --accent-strong: #6b8c00;
+  --accent-ink: #ffffff;
+  --accent-gradient: linear-gradient(90deg, #4c6400, #6b8c00);
   --danger: #d43c3c;
   --good: #1f8f4e;
 }
@@ -349,11 +353,19 @@ main {
   text-decoration: none;
 }
 
-/* Your logo picture, when you add one */
+/* The logo picture */
 .logo img {
   display: block;
-  height: 36px;
+  height: 44px;
   width: auto;
+}
+
+/* The logo is bright lime, made for a black background. On the
+   light theme it gets a small black box behind it. */
+:root[data-theme="light"] .logo {
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: #050505;
 }
 
 .header-actions {
@@ -837,7 +849,7 @@ button.avatar:hover {
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(5, 11, 31, 0.35);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .movie-lock svg {
@@ -845,7 +857,7 @@ button.avatar:hover {
   height: 46px;
   padding: 12px;
   border-radius: 50%;
-  background: rgba(5, 11, 31, 0.78);
+  background: rgba(0, 0, 0, 0.78);
   fill: var(--accent-strong);
 }
 
