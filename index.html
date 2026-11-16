@@ -24,18 +24,29 @@
   <!-- THE TOP BAR: stays at the top while you scroll -->
   <header class="site-header">
     <div class="header-inner">
-      <!-- LEFT: the menu button (three lines) -->
-      <button id="open-menu-button" class="icon-button icon-plain" type="button" aria-label="Цэс нээх">
+      <!-- The menu button (three lines). Only on phones, where the
+           category links do not fit in the bar. -->
+      <button id="open-menu-button" class="icon-button icon-plain header-menu-button" type="button" aria-label="Цэс нээх">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
 
-      <!-- MIDDLE: the logo.
+      <!-- LEFT: the logo.
            WHEN YOUR LOGO IS READY: put the file in this folder as
            logo.png, then put this line in place of the <span>
            line below:   <img src="logo.png" alt="KINO">   -->
-      <a class="logo" href="#">
+      <a id="logo-link" class="logo" href="#">
         <span>KINO</span>
       </a>
+
+      <!-- The category links. script.js fills this in from GENRES. -->
+      <nav id="header-nav" class="header-nav" aria-label="Ангилал"></nav>
+
+      <button id="header-plans-button" class="header-plans" type="button">🎁 БАГЦ АВАХ</button>
+
+      <!-- Opens and closes the search box below the bar -->
+      <button id="open-search-button" class="icon-button icon-plain" type="button" aria-label="Кино хайх" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      </button>
 
       <!-- RIGHT -->
       <div class="header-actions">
@@ -44,23 +55,24 @@
         </button>
 
         <!-- Shown when nobody is logged in -->
-        <button id="open-login-button" class="icon-button icon-plain" type="button" aria-label="Нэвтрэх" hidden>
+        <button id="open-login-button" class="header-login" type="button" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.6-3.600 3.400-5.500 7-5.500s6.400 1.900 7 5.500"/></svg>
+          <span>Нэвтрэх</span>
         </button>
 
         <!-- Shown when somebody is logged in -->
         <button id="my-avatar" class="avatar" type="button" aria-label="Миний хуудас" hidden></button>
       </div>
     </div>
-  </header>
 
-  <main>
-    <!-- THE SEARCH BOX -->
-    <div class="search-box">
+    <!-- THE SEARCH BOX: hidden until the search button is clicked -->
+    <div id="search-box" class="search-box" hidden>
       <input id="search-input" type="search" placeholder="Кино хайх..." aria-label="Кино хайх">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
     </div>
+  </header>
 
+  <main>
     <!-- THE ROWS: "new", one row per genre, "most watched".
          script.js builds them. Hidden while you search or filter. -->
     <div id="rows"></div>
@@ -162,12 +174,6 @@
       <div id="genre-chips"></div>
 
       <div class="menu-bottom">
-        <!-- Shown only to admins -->
-        <button id="open-admin-button" class="button button-ghost button-wide" type="button" hidden>
-          Захиалга <span id="admin-count" class="count-badge" hidden></span>
-        </button>
-        <button id="open-upload-button" class="button button-accent button-wide" type="button" hidden>Кино нэмэх</button>
-
         <!-- Shown when somebody is logged in -->
         <button id="logout-button" class="button button-ghost button-wide" type="button" hidden>Гарах</button>
       </div>
@@ -232,6 +238,15 @@
           <h2 id="profile-name"></h2>
           <p id="profile-email" class="dialog-hint"></p>
         </div>
+      </div>
+
+      <!-- Shown only to admins -->
+      <div id="profile-admin" hidden>
+        <h3 class="profile-heading">Админ</h3>
+        <button id="open-upload-button" class="button button-accent button-wide" type="button" hidden>Кино нэмэх</button>
+        <button id="open-admin-button" class="button button-ghost button-wide" type="button" hidden>
+          Захиалга <span id="admin-count" class="count-badge" hidden></span>
+        </button>
       </div>
 
       <h3 class="profile-heading">Миний эрх</h3>

@@ -77,6 +77,12 @@ const myAvatar = $("my-avatar");
 const logoutButton = $("logout-button");
 const openMenuButton = $("open-menu-button");
 const menuDialog = $("menu-dialog");
+const logoLink = $("logo-link");
+const headerNav = $("header-nav");
+const headerPlansButton = $("header-plans-button");
+const openSearchButton = $("open-search-button");
+const searchBox = $("search-box");
+const profileAdmin = $("profile-admin");
 const menuHomeButton = $("menu-home-button");
 const openPlansButton = $("open-plans-button");
 const plansDialog = $("plans-dialog");
@@ -309,6 +315,7 @@ function showHeader() {
   logoutButton.hidden = !loggedIn;
   openAdminButton.hidden = !account.isAdmin;
   openUploadButton.hidden = !account.isAdmin;
+  profileAdmin.hidden = !account.isAdmin;
 
   if (loggedIn) {
     myAvatar.textContent = myName().charAt(0);
@@ -636,8 +643,11 @@ function chooseGenre(genre) {
   window.scrollTo({ top: 0 });
 }
 
+// The categories are shown in two places: as links in the top bar
+// (wide screens), and as a list in the menu window (phones).
 function showGenreChips() {
   genreChips.innerHTML = "";
+  headerNav.innerHTML = "";
 
   for (const genre of GENRES) {
     const chip = document.createElement("button");
@@ -649,6 +659,18 @@ function showGenreChips() {
       chooseGenre(genre);
     });
     genreChips.appendChild(chip);
+
+    // In the top bar there is little room, so "Солонгос кино"
+    // becomes just "Солонгос". A second click goes back to all movies.
+    const link = document.createElement("button");
+    link.type = "button";
+    link.className = "nav-link";
+    link.textContent = genre.replace(" кино", "");
+    link.setAttribute("aria-pressed", String(genre === chosenGenre));
+    link.addEventListener("click", function () {
+      chooseGenre(genre === chosenGenre ? null : genre);
+    });
+    headerNav.appendChild(link);
   }
 }
 
@@ -1905,12 +1927,36 @@ function openPlans() {
 }
 openPlansButton.addEventListener("click", openPlans);
 
+headerPlansButton.addEventListener("click", openPlans);
+
+// The logo goes back to the front page.
+logoLink.addEventListener("click", function (event) {
+  event.preventDefault();
+  chooseGenre(null);
+});
+
+// The search button opens and closes the search box.
+openSearchButton.addEventListener("click", function () {
+  searchBox.hidden = !searchBox.hidden;
+  openSearchButton.setAttribute("aria-expanded", String(!searchBox.hidden));
+
+  if (!searchBox.hidden) {
+    searchInput.focus();
+  } else if (searchInput.value !== "") {
+    // Closing the box also ends the search.
+    searchInput.value = "";
+    showRows();
+    showMovies(false);
+  }
+});
+
+// The admin buttons are on "my page".
 openUploadButton.addEventListener("click", function () {
-  menuDialog.close();
+  profileDialog.close();
   uploadDialog.showModal();
 });
 openAdminButton.addEventListener("click", function () {
-  menuDialog.close();
+  profileDialog.close();
   adminDialog.showModal();
   showAdminOrders();
 });
