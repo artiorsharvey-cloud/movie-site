@@ -121,6 +121,10 @@ const playerMeta = $("player-meta");
 
 const loginDialog = $("login-dialog");
 const loginForm = $("login-form");
+const loginHeading = $("login-heading");
+const loginHint = $("login-hint");
+const nameField = $("name-field");
+const nameInput = $("name-input");
 const emailInput = $("email-input");
 const passwordInput = $("password-input");
 const loginButton = $("login-button");
@@ -295,8 +299,11 @@ function showHeader() {
   openUploadButton.hidden = !account.isAdmin;
 
   if (loggedIn) {
-    myAvatar.textContent = currentUser.email.charAt(0);
-    myAvatar.title = currentUser.email;
+    // The name the person typed when signing up. Old accounts have
+    // no name, so for them we use the email.
+    const name = (currentUser.user_metadata && currentUser.user_metadata.name) || currentUser.email;
+    myAvatar.textContent = name.charAt(0);
+    myAvatar.title = name;
   }
 }
 
@@ -855,6 +862,7 @@ function needLogin(reason) {
   if (currentUser) {
     return true;
   }
+  showLoginMode(false);
   showFormMessage(loginMessage, reason);
   for (const dialog of [movieDialog, plansDialog, menuDialog]) {
     if (dialog.open) {
@@ -1633,36 +1641,85 @@ function setLoginButtonsDisabled(disabled) {
   signupButton.disabled = disabled;
 }
 
-async function signUp() {
-  if (!loginForm.reportValidity()) {
-    return;
-  }
+// The same window does two jobs: log in, and sign up.
+// signupMode says which one it is doing right now.
+let signupMode = false;
 
+function showLoginMode(signup) {
+  signupMode = signup;
+
+  nameField.hidden = !signup;
+  nameInput.required = signup;
+  passwordInput.autocomplete = signup ? "new-password" : "current-password";
+
+  loginHeading.textContent = signup ? "Бүртгүүлэх" : "Нэвтрэх";
+  loginHint.textContent = signup
+    ? "Нэр, имэйл, нууц үгээ оруулна уу."
+    : "Кино үзэхийн тулд нэвтэрнэ үү.";
+  loginButton.textContent = signup ? "Бүртгүүлэх" : "Нэвтрэх";
+  signupButton.textContent = signup ? "Бүртгэлтэй юу? Нэвтрэх" : "Шинээр бүртгүүлэх";
+
+  showFormMessage(loginMessage, "");
+}
+
+async function signUp() {
   setLoginButtonsDisabled(true);
   showFormMessage(loginMessage, "Бүртгэл үүсгэж байна...");
 
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  // "data" is extra information saved with the account. The name
+  // goes there. Later it is in currentUser.user_metadata.name
   const { data, error } = await db.auth.signUp({
-    email: emailInput.value.trim(),
-    password: passwordInput.value,
+    email: email,
+    password: password,
+    options: { data: { name: nameInput.value.trim() } },
   });
 
-  setLoginButtonsDisabled(false);
-
   if (error) {
+    setLoginButtonsDisabled(false);
     console.error("Sign up failed:", error);
-    showFormMessage(loginMessage, error.message, true);
+    showFormMessage(loginMessage, "Бүртгүүлж чадсангүй. (" + error.message + ")", true);
     return;
   }
 
+  // No email confirmation: the account is ready at once. If Supabase
+  // did not log the person in by itself, we log in right away.
+  if (!data.session) {
+    const { error: loginError } = await db.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (loginError) {
+      setLoginButtonsDisabled(false);
+      console.error("Log in after sign up failed:", loginError);
+      showLoginMode(false);
+      showFormMessage(
+        loginMessage,
+        "Энэ имэйл бүртгэлтэй байж магадгүй. Нэвтэрч үзнэ үү.",
+        true
+      );
+      return;
+    }
+  }
+
+  // The window closes itself in onAuthStateChange above.
+  setLoginButtonsDisabled(false);
+  nameInput.value = "";
   passwordInput.value = "";
-  showFormMessage(
-    loginMessage,
-    data.session ? "" : "Бүртгэл үүслээ. Имэйлээ шалгаж баталгаажуулаад нэвтэрнэ үү."
-  );
+  showLoginMode(false);
+  showToast("Тавтай морил!");
 }
 
 async function logIn(event) {
   event.preventDefault();
+
+  if (signupMode) {
+    await signUp();
+    return;
+  }
 
   setLoginButtonsDisabled(true);
   showFormMessage(loginMessage, "Нэвтэрч байна...");
@@ -1702,14 +1759,16 @@ async function logOut() {
 // ---------------------------------------------------------------
 themeButton.addEventListener("click", switchTheme);
 loginForm.addEventListener("submit", logIn);
-signupButton.addEventListener("click", signUp);
+signupButton.addEventListener("click", function () {
+  showLoginMode(!signupMode);
+});
 logoutButton.addEventListener("click", logOut);
 movieForm.addEventListener("submit", addMovie);
 videoInput.addEventListener("change", showChosenVideo);
 posterInput.addEventListener("change", showChosenPoster);
 
 openLoginButton.addEventListener("click", function () {
-  showFormMessage(loginMessage, "");
+  showLoginMode(false);
   loginDialog.showModal();
 });
 openMenuButton.addEventListener("click", function () {

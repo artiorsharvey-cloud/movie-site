@@ -1090,3 +1090,34 @@ end;
 $$;
 
 revoke execute on function public.notify_new_order() from public, anon, authenticated;
+
+
+-- ===============================================================
+-- STAGE 10: SIGN UP WITHOUT EMAIL CONFIRMATION
+--
+-- People sign up with a name, an email and a password, and they are
+-- in at once. Nobody has to click a link in an email.
+-- This runs just before a new account is saved, and marks its email
+-- as already confirmed.
+-- (The name is saved by the website, in the account's own data.)
+-- ===============================================================
+create or replace function public.confirm_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.email is not null and new.email_confirmed_at is null then
+    new.email_confirmed_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+revoke execute on function public.confirm_new_user() from public, anon, authenticated;
+
+drop trigger if exists users_confirm_at_signup on auth.users;
+create trigger users_confirm_at_signup
+  before insert on auth.users
+  for each row execute function public.confirm_new_user();

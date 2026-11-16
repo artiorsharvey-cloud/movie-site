@@ -225,9 +225,15 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
       <h2 id="login-heading">Нэвтрэх</h2>
-      <p class="dialog-hint">Кино үзэхийн тулд нэвтэрнэ үү.</p>
+      <p id="login-hint" class="dialog-hint">Кино үзэхийн тулд нэвтэрнэ үү.</p>
 
       <form id="login-form">
+        <!-- The name box only shows when somebody signs up. -->
+        <div id="name-field" hidden>
+          <label for="name-input">Нэр</label>
+          <input id="name-input" type="text" autocomplete="name" maxlength="50">
+        </div>
+
         <label for="email-input">Имэйл</label>
         <input id="email-input" type="email" autocomplete="email" required>
 
