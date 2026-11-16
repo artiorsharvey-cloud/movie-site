@@ -49,7 +49,7 @@
         </button>
 
         <!-- Shown when somebody is logged in -->
-        <span id="my-avatar" class="avatar" hidden></span>
+        <button id="my-avatar" class="avatar" type="button" aria-label="Миний хуудас" hidden></button>
       </div>
     </div>
   </header>
@@ -215,6 +215,36 @@
         <h2 id="player-title"></h2>
         <p id="player-meta" class="player-meta"></p>
       </div>
+    </div>
+  </dialog>
+
+  <!-- MY PAGE: opens with a click on the round letter at the top.
+       Shows who I am, what I have paid for, and what I like. -->
+  <dialog id="profile-dialog" class="dialog" aria-labelledby="profile-name">
+    <div class="dialog-body dialog-padded">
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+
+      <div class="profile-top">
+        <span id="profile-avatar" class="avatar avatar-big"></span>
+        <div class="profile-who">
+          <h2 id="profile-name"></h2>
+          <p id="profile-email" class="dialog-hint"></p>
+        </div>
+      </div>
+
+      <h3 class="profile-heading">Миний эрх</h3>
+      <p id="profile-plan" class="profile-plan"></p>
+      <button id="profile-plans-button" class="button button-accent button-wide" type="button">🎁 Багц авах</button>
+
+      <h3 class="profile-heading">Түрээсэлсэн кино</h3>
+      <ul id="profile-rentals" class="profile-list"></ul>
+
+      <h3 class="profile-heading">Таалагдсан кино</h3>
+      <ul id="profile-likes" class="profile-list"></ul>
+
+      <button id="profile-logout-button" class="button button-ghost button-wide profile-logout" type="button">Гарах</button>
     </div>
   </dialog>
 

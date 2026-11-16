@@ -119,6 +119,16 @@ const playerVideo = $("player-video");
 const playerTitle = $("player-title");
 const playerMeta = $("player-meta");
 
+const profileDialog = $("profile-dialog");
+const profileAvatar = $("profile-avatar");
+const profileName = $("profile-name");
+const profileEmail = $("profile-email");
+const profilePlan = $("profile-plan");
+const profilePlansButton = $("profile-plans-button");
+const profileRentals = $("profile-rentals");
+const profileLikes = $("profile-likes");
+const profileLogoutButton = $("profile-logout-button");
+
 const loginDialog = $("login-dialog");
 const loginForm = $("login-form");
 const loginHeading = $("login-heading");
@@ -299,12 +309,107 @@ function showHeader() {
   openUploadButton.hidden = !account.isAdmin;
 
   if (loggedIn) {
-    // The name the person typed when signing up. Old accounts have
-    // no name, so for them we use the email.
-    const name = (currentUser.user_metadata && currentUser.user_metadata.name) || currentUser.email;
-    myAvatar.textContent = name.charAt(0);
-    myAvatar.title = name;
+    myAvatar.textContent = myName().charAt(0);
+    myAvatar.title = myName();
   }
+
+  // Nobody is logged in any more: "my page" has nothing to show.
+  if (!loggedIn && profileDialog.open) {
+    profileDialog.close();
+  }
+  if (profileDialog.open) {
+    showProfile();
+  }
+}
+
+// The name the person typed when signing up. Old accounts have
+// no name, so for them we use the email.
+function myName() {
+  return (currentUser.user_metadata && currentUser.user_metadata.name) || currentUser.email;
+}
+
+// ---------------------------------------------------------------
+// MY PAGE
+// Everything here is already in "account" and "allMovies", so
+// there is nothing new to ask the database.
+// ---------------------------------------------------------------
+
+// Fill one list on my page with movies. Each line is a button that
+// opens the movie. "note" is the small text on the right, or "".
+function fillProfileList(list, items, emptyText) {
+  list.replaceChildren();
+
+  if (items.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "profile-empty";
+    empty.textContent = emptyText;
+    list.append(empty);
+    return;
+  }
+
+  for (const item of items) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "profile-item";
+
+    const title = document.createElement("span");
+    title.className = "profile-item-title";
+    title.textContent = item.row.title;
+    button.append(title);
+
+    if (item.note) {
+      const note = document.createElement("span");
+      note.className = "profile-item-note";
+      note.textContent = item.note;
+      button.append(note);
+    }
+
+    button.addEventListener("click", function () {
+      profileDialog.close();
+      openMovieDialog(item.row);
+    });
+
+    const line = document.createElement("li");
+    line.append(button);
+    list.append(line);
+  }
+}
+
+function showProfile() {
+  if (!currentUser) {
+    return;
+  }
+
+  profileAvatar.textContent = myName().charAt(0);
+  profileName.textContent = myName();
+  profileEmail.textContent = currentUser.email;
+
+  // What have I paid for?
+  if (account.isAdmin) {
+    profilePlan.textContent = "Админ: бүх кино нээлттэй.";
+  } else if (isSubscribed()) {
+    profilePlan.textContent = "Багцын эрх " + dateText(account.subscribedUntil) + " хүртэл хүчинтэй.";
+  } else {
+    profilePlan.textContent = "Танд идэвхтэй багц алга.";
+  }
+  profilePlan.classList.toggle("active", account.isAdmin || isSubscribed());
+  profilePlansButton.hidden = account.isAdmin;
+  profilePlansButton.textContent = isSubscribed() ? "🎁 Багц сунгах" : "🎁 Багц авах";
+
+  // The movies I rented that are still in time, and the ones I like.
+  const rented = [];
+  const liked = [];
+  for (const row of allMovies) {
+    if (hasRental(row)) {
+      rented.push({ row: row, note: dateTimeText(account.rentals[row.id]) + " хүртэл" });
+    }
+    if (account.likes[row.id]) {
+      liked.push({ row: row, note: "" });
+    }
+  }
+
+  fillProfileList(profileRentals, rented, "Түрээсэлсэн кино алга.");
+  fillProfileList(profileLikes, liked, "Таалагдсан кино алга.");
 }
 
 // Supabase calls this when the page opens and whenever somebody
@@ -1774,13 +1879,22 @@ openLoginButton.addEventListener("click", function () {
 openMenuButton.addEventListener("click", function () {
   menuDialog.showModal();
 });
+myAvatar.addEventListener("click", function () {
+  showProfile();
+  profileDialog.showModal();
+});
+profilePlansButton.addEventListener("click", openPlans);
+profileLogoutButton.addEventListener("click", function () {
+  profileDialog.close();
+  logOut();
+});
 menuHomeButton.addEventListener("click", function () {
   chooseGenre(null);
 });
 
 // Show the membership plans. First close the window we came from.
 function openPlans() {
-  for (const dialog of [menuDialog, movieDialog]) {
+  for (const dialog of [menuDialog, movieDialog, profileDialog]) {
     if (dialog.open) {
       dialog.close();
     }

@@ -323,6 +323,122 @@ main {
   text-transform: uppercase;
 }
 
+/* The avatar at the top is a button: a click opens "my page" */
+button.avatar {
+  padding: 0;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.avatar:hover {
+  filter: brightness(1.1);
+}
+
+/* ---------------------------------------------------------------
+   MY PAGE
+   --------------------------------------------------------------- */
+.profile-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 40px;        /* room for the X button */
+}
+
+.avatar-big {
+  width: 56px;
+  height: 56px;
+  font-size: 24px;
+}
+
+.profile-who {
+  min-width: 0;
+}
+
+.profile-who h2 {
+  padding-right: 0;
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+.profile-who .dialog-hint {
+  margin-top: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-heading {
+  margin-top: 24px;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.profile-plan {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile-plan.active {
+  border-color: var(--good);
+  color: var(--good);
+}
+
+.profile-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-empty {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.profile-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-item:hover {
+  background: rgba(128, 140, 160, 0.16);
+}
+
+.profile-item-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-item-note {
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.profile-logout {
+  margin-top: 28px;
+}
+
 /* The small number on the admin button: how many orders wait */
 .count-badge {
   display: inline-grid;
