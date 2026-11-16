@@ -28,8 +28,8 @@
 // one, so it is fine to have it here.
 import { LINK_SECONDS, sign } from "../_signing.js";
 
-const SUPABASE_URL = "https://xmkjrncoexgjcyjcaukf.supabase.co";
-const SUPABASE_KEY = "sb_publishable_zy4lZL5239LLuA5Cbz1Gew_FNkccaUz";
+const SUPABASE_URL = "https://oyjfyivsopjyrilsgapn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_8xscffZzWJjrHjpBDusB0A_SrFnoQaJ";
 
 const MAX_VIDEO_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
 const PART_BYTES = 20 * 1024 * 1024; // each piece is 20 MB

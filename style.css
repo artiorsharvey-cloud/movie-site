@@ -6,15 +6,17 @@
 :root {
   /* Tell the browser this is a dark site, so scrollbars are dark too */
   color-scheme: dark;
-  --bg: #0d1522;
-  --surface: #142033;
-  --surface-2: #1d2c44;
+  --bg: #050b1f;
+  --surface: #0b1430;
+  --surface-2: #152043;
   --line: rgba(255, 255, 255, 0.1);
   --text: #f2f5fa;
   --muted: #93a1b5;
-  --accent: #f5b041;
-  --accent-strong: #ffc35c;
-  --accent-ink: #1a1205;       /* text ON the accent color */
+  --accent: #ff5a2c;
+  --accent-strong: #ff7a45;
+  --accent-ink: #ffffff;       /* text ON the accent color */
+  /* The orange-to-red color of the big buttons */
+  --accent-gradient: linear-gradient(90deg, #ff3d2e, #ff8a3d);
   --danger: #ff6b6b;
   --good: #5fd08a;
   --radius: 14px;
@@ -32,8 +34,8 @@
   --line: rgba(15, 25, 45, 0.12);
   --text: #101826;
   --muted: #5d6878;
-  --accent: #f0a024;
-  --accent-strong: #f5b041;
+  --accent: #f04a1d;
+  --accent-strong: #ff5a2c;
   --danger: #d43c3c;
   --good: #1f8f4e;
 }
@@ -118,12 +120,22 @@ main {
 
 /* Colored button: the main action */
 .button-accent {
-  background: var(--accent);
+  background: var(--accent-gradient);
   color: var(--accent-ink);
 }
 
 .button-accent:hover:not(:disabled) {
-  background: var(--accent-strong);
+  filter: brightness(1.1);
+}
+
+/* The big, wide buttons in the window for one movie */
+.button-big {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 /* Button with only a line around it */
@@ -193,6 +205,22 @@ main {
   stroke-linejoin: round;
 }
 
+/* An icon button with no circle around it (in the top bar) */
+.icon-plain {
+  border-color: transparent;
+  background: transparent;
+}
+
+.icon-plain:hover {
+  background: rgba(128, 140, 160, 0.18);
+}
+
+.icon-plain svg {
+  width: 22px;
+  height: 22px;
+  stroke-linecap: round;
+}
+
 /* ---------------------------------------------------------------
    THE TOP BAR
    --------------------------------------------------------------- */
@@ -206,70 +234,56 @@ main {
   border-bottom: 1px solid var(--line);
 }
 
+/* Three columns: menu button, logo in the middle, buttons */
 .header-inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   max-width: 1440px;
   margin: 0 auto;
-  padding: 12px var(--page-padding);
+  padding: 10px var(--page-padding);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: var(--text);
-  font-size: 20px;
-  letter-spacing: -0.03em;
-  text-decoration: none;
-}
-
-.logo strong {
+  color: var(--accent);
+  font-family: var(--display-font);
+  font-size: 28px;
   font-weight: 700;
-}
-
-.logo svg {
-  width: 30px;
-  height: 30px;
-}
-
-.logo rect {
-  fill: var(--accent);
-}
-
-.logo path {
-  fill: var(--accent-ink);
-}
-
-.nav {
-  display: flex;
-  gap: 18px;
-}
-
-.nav a {
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1;
   text-decoration: none;
 }
 
-.nav a:hover {
-  color: var(--text);
+/* Your logo picture, when you add one */
+.logo img {
+  display: block;
+  height: 36px;
+  width: auto;
 }
 
-/* The search box grows to fill the free space in the middle */
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+/* ---------------------------------------------------------------
+   THE SEARCH BOX, at the top of the page
+   --------------------------------------------------------------- */
 .search-box {
   position: relative;
-  flex: 1;
-  max-width: 420px;
+  max-width: 520px;
   margin: 0 auto;
 }
 
 .search-box input {
   width: 100%;
   margin: 0;
-  padding: 9px 40px 9px 16px;
+  padding: 10px 44px 10px 18px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
@@ -282,23 +296,17 @@ main {
   position: absolute;
   top: 50%;
   right: 6px;
-  width: 28px;
-  height: 28px;
-  padding: 6px;
+  width: 30px;
+  height: 30px;
+  padding: 7px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-gradient);
   fill: none;
   stroke: var(--accent-ink);
   stroke-width: 2;
   stroke-linecap: round;
   transform: translateY(-50%);
   pointer-events: none;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 /* The round circle with the first letter of your email */
@@ -329,35 +337,18 @@ main {
 }
 
 /* ---------------------------------------------------------------
-   THE TOP OF THE PAGE: membership box + hero, side by side
+   THE MEMBERSHIP PLANS (in their own pop-up window)
    --------------------------------------------------------------- */
-.top {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 20px;
-  align-items: stretch;
-}
-
 .plans-card {
   display: flex;
   flex-direction: column;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  background: var(--surface);
-}
-
-.plans-card h2 {
-  color: var(--muted);
-  font-size: 15px;
-  font-weight: 600;
 }
 
 /* The row of plan buttons: 24 hours, 1 month, ... */
 .plan-tabs {
   display: flex;
   gap: 4px;
-  margin-top: 14px;
+  margin-top: 18px;
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -384,7 +375,7 @@ main {
 
 /* The plan that is chosen right now */
 .plan-tab[aria-pressed="true"] {
-  background: var(--accent);
+  background: var(--accent-gradient);
   color: var(--accent-ink);
 }
 
@@ -460,212 +451,79 @@ main {
   font-weight: 600;
 }
 
-/* Push the button to the bottom of the box */
 .plans-card .button-wide {
-  margin-top: auto;
-}
-
-.plan-points + .button-wide,
-.plan-status + .button-wide {
   margin-top: 18px;
 }
 
 /* ---------------------------------------------------------------
-   THE HERO
-   It is always dark, in both themes, so white words are readable
-   on top of the picture.
+   THE MENU: a tall window on the left side of the screen
    --------------------------------------------------------------- */
-.hero {
-  position: relative;
+.dialog.dialog-menu {
+  width: min(320px, 86vw);
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;                  /* a dialog is in the middle unless margin is 0 */
+  border-width: 0 1px 0 0;
+  border-radius: 0 20px 20px 0;
+}
+
+.dialog.dialog-menu[open] {
+  animation: slide-in 0.25s ease-out;
+}
+
+.dialog-menu .dialog-body {
   display: flex;
-  align-items: center;
-  gap: 28px;
-  min-height: 440px;
-  padding: 40px 64px 56px;
-  border-radius: 20px;
-  overflow: hidden;
-  background:
-    radial-gradient(70% 90% at 85% 20%, rgba(245, 176, 65, 0.28), transparent 70%),
-    #101826;
-  color: #f2f5fa;
+  flex-direction: column;
+  min-height: 100%;
 }
 
-/* The poster again, made huge and blurry: soft colors behind the words */
-.hero-backdrop {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(46px) saturate(1.2) brightness(0.4);
-  transform: scale(1.3);
-}
-
-.hero-content {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  /* script.js restarts this each time the movie changes */
-  animation: rise 0.5s ease-out both;
-}
-
-.hero-label {
-  color: var(--accent);
+.menu-heading {
+  margin: 22px 0 6px;
+  color: var(--muted);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.hero h1 {
-  margin-top: 10px;
-  font-family: var(--display-font);
-  font-size: clamp(30px, 4.4vw, 56px);
-  font-weight: 700;
-  line-height: 1.08;
-  text-transform: uppercase;
-  overflow-wrap: anywhere;
+.menu-heading:first-of-type {
+  margin-top: 4px;
 }
 
-.hero-description {
-  margin-top: 14px;
-  max-width: 560px;
-  color: #c9d2df;
-  font-size: 15px;
-  /* Show at most 4 lines, then "..." */
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.hero-meta {
-  margin-top: 14px;
-  color: #c9d2df;
-  font-size: 14px;
-}
-
-.hero-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 22px;
-}
-
-.hero .button-outline {
-  border-color: rgba(255, 255, 255, 0.6);
-  color: #f2f5fa;
-}
-
-.hero-poster {
-  position: relative;
-  flex: none;
-  width: min(230px, 26%);
-  aspect-ratio: 2 / 3;
-  border-radius: 12px;
-  object-fit: cover;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-  animation: rise 0.5s ease-out both;
-}
-
-.hero-arrow {
-  position: absolute;
-  bottom: 14px;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 50%;
-  background: rgba(10, 16, 26, 0.5);
-  cursor: pointer;
-}
-
-.hero-arrow:hover {
-  background: rgba(10, 16, 26, 0.9);
-}
-
-.hero-arrow svg {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: #f2f5fa;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.hero-arrow-left {
-  left: 16px;
-}
-
-.hero-arrow-right {
-  right: 16px;
-}
-
-.hero-dots {
-  position: absolute;
-  left: 50%;
-  bottom: 26px;
-  display: flex;
-  gap: 8px;
-  transform: translateX(-50%);
-}
-
-.hero-dot {
-  width: 10px;
-  height: 10px;
-  padding: 0;
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 11px 12px;
   border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.35);
-  cursor: pointer;
-  transition: width 0.25s, background 0.25s;
-}
-
-/* The dot of the movie on screen is wider */
-.hero-dot[aria-current="true"] {
-  width: 28px;
-  background: var(--accent);
-}
-
-/* ---------------------------------------------------------------
-   GENRE BUTTONS
-   --------------------------------------------------------------- */
-.chips {
-  display: flex;
-  gap: 8px;
-  margin-top: 22px;
-  padding-bottom: 4px;
-  overflow-x: auto;           /* slide sideways on small screens */
-  scrollbar-width: none;
-}
-
-.chip {
-  flex: none;
-  padding: 7px 16px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 10px;
   background: transparent;
-  color: var(--muted);
+  color: var(--text);
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
+  text-align: left;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
 }
 
-.chip:hover {
-  color: var(--text);
-  background: rgba(128, 140, 160, 0.14);
+.menu-item:hover {
+  background: rgba(128, 140, 160, 0.16);
+}
+
+.menu-item-accent {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 /* The genre that is chosen right now */
-.chip[aria-pressed="true"] {
-  background: var(--accent);
-  border-color: var(--accent);
+.menu-item[aria-pressed="true"] {
+  background: var(--accent-gradient);
   color: var(--accent-ink);
+}
+
+/* The admin and log out buttons sit at the bottom of the menu */
+.menu-bottom {
+  margin-top: auto;
+  padding-top: 20px;
 }
 
 /* ---------------------------------------------------------------
@@ -682,6 +540,23 @@ main {
   margin-bottom: 16px;
 }
 
+/* "See all" at the right end of a row heading */
+.shelf-link {
+  margin-left: auto;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shelf-link:hover {
+  text-decoration: underline;
+}
+
 .shelf-heading h2 {
   font-family: var(--display-font);
   font-size: 24px;
@@ -693,31 +568,13 @@ main {
   font-size: 14px;
 }
 
-/* A ROW: cards side by side that slide sideways */
-.movie-row {
-  list-style: none;
-  margin: 0;
-  padding: 6px 0 10px;
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-}
-
-.movie-row .movie-card {
-  flex: none;
-  width: 172px;
-  scroll-snap-align: start;
-}
-
 /* THE GRID: auto-fill means "fit as many columns as the screen allows" */
 .movie-grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 28px 16px;
 }
 
@@ -764,23 +621,22 @@ main {
   font-weight: 700;
 }
 
-/* The price in the corner of a card */
-.movie-tag {
+/* A round lock in the middle of a poster you have not paid for */
+.movie-lock {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 12px;
-  font-weight: 700;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 11, 31, 0.35);
 }
 
-/* A movie you may already watch */
-.movie-tag.open {
-  background: var(--good);
-  color: white;
+.movie-lock svg {
+  width: 46px;
+  height: 46px;
+  padding: 12px;
+  border-radius: 50%;
+  background: rgba(5, 11, 31, 0.78);
+  fill: var(--accent-strong);
 }
 
 /* A dark fade and a round play button, shown on hover */
@@ -799,7 +655,7 @@ main {
   height: 52px;
   padding: 15px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-gradient);
   fill: var(--accent-ink);
   transform: scale(0.8);
   transition: transform 0.25s;
@@ -834,15 +690,17 @@ main {
   overflow-wrap: anywhere;
 }
 
-.movie-info {
+/* The price under the title */
+.movie-price {
+  margin-top: 2px;
   color: var(--muted);
   font-size: 13px;
-  margin-top: 2px;
+  font-weight: 600;
 }
 
-.movie-info .star {
-  color: var(--accent);
-  font-weight: 600;
+/* "Free" or "Open": a movie you may already watch */
+.movie-price.open {
+  color: var(--good);
 }
 
 /* Shown when there are no movies to show */
@@ -954,19 +812,20 @@ main {
 
 /* ---- The window for one movie ---- */
 .dialog-movie {
-  width: min(820px, calc(100vw - 24px));
+  width: min(980px, calc(100vw - 24px));
 }
 
 .movie-detail {
   display: flex;
-  gap: 26px;
-  padding: 28px;
+  gap: 30px;
+  padding: 30px;
 }
 
 .movie-detail-poster {
   position: relative;
   flex: none;
-  width: 240px;
+  align-self: flex-start;
+  width: 300px;
   aspect-ratio: 2 / 3;
   border-radius: var(--radius);
   overflow: hidden;
@@ -986,16 +845,32 @@ main {
   min-width: 0;
 }
 
+/* The genre, in small orange capital letters */
+.movie-detail-genre {
+  padding-right: 44px;        /* room for the X button */
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .movie-detail-text h2 {
   margin-top: 6px;
-  font-size: 32px;
-  line-height: 1.15;
-  text-transform: uppercase;
+  font-family: inherit;
+  font-size: 26px;
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
-.movie-detail-meta {
+.movie-detail-price {
   margin-top: 8px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.movie-detail-meta {
+  margin-top: 6px;
   color: var(--muted);
   font-size: 14px;
 }
@@ -1006,7 +881,7 @@ main {
 }
 
 .movie-detail-description {
-  margin-top: 14px;
+  margin-top: 16px;
   white-space: pre-wrap;      /* keep line breaks the writer typed */
   overflow-wrap: anywhere;    /* break very long words on phones */
 }
@@ -1021,9 +896,42 @@ main {
 
 .movie-detail-buttons {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* The small words under the "bundle" button */
+.movie-plan-note {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.movie-detail-line {
   margin-top: 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.movie-detail-line span {
+  color: var(--text);
+}
+
+/* "You may also like", under the movie */
+.movie-more {
+  padding: 24px 30px 30px;
+  border-top: 1px solid var(--line);
+}
+
+.movie-more h3 {
+  margin-bottom: 16px;
+  font-family: var(--display-font);
+  font-size: 22px;
+}
+
+.movie-more .movie-grid {
+  grid-template-columns: repeat(6, 1fr);
 }
 
 .movie-detail-actions {
@@ -1461,6 +1369,12 @@ textarea {
   }
 }
 
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
 @keyframes shine {
   from {
     background-position: 100% 0;
@@ -1486,19 +1400,15 @@ textarea {
 }
 
 /* ---------------------------------------------------------------
-   TABLETS: the membership box moves under the hero
+   TABLETS
    --------------------------------------------------------------- */
 @media (max-width: 980px) {
-  .top {
-    grid-template-columns: 1fr;
+  .movie-detail-poster {
+    width: 220px;
   }
 
-  .hero {
-    order: -1;                /* show the hero first */
-  }
-
-  .nav {
-    display: none;
+  .movie-more .movie-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1506,60 +1416,65 @@ textarea {
    PHONES
    --------------------------------------------------------------- */
 @media (max-width: 640px) {
-  .header-inner {
-    flex-wrap: wrap;
-    gap: 10px;
+  .logo {
+    font-size: 24px;
   }
 
-  .logo span {
-    font-size: 18px;
+  .logo img {
+    height: 30px;
   }
 
-  /* The search box drops to its own line */
-  .search-box {
-    order: 3;
-    flex-basis: 100%;
-    max-width: none;
+  /* Three posters side by side, like a real movie app */
+  .movie-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px 10px;
   }
 
-  .header-actions {
-    margin-left: auto;
-  }
-
-  .header-actions .button {
-    padding: 8px 10px;
+  .movie-title {
     font-size: 13px;
   }
 
-  .hero {
-    min-height: 0;
-    padding: 26px 20px 64px;
+  .movie-price {
+    font-size: 12px;
   }
 
-  .hero-poster {
-    display: none;
+  .movie-lock svg {
+    width: 36px;
+    height: 36px;
+    padding: 9px;
   }
 
-  .movie-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 22px 12px;
+  .shelf-heading h2 {
+    font-size: 20px;
   }
 
-  .movie-row .movie-card {
-    width: 142px;
+  /* The window for one movie fills the whole phone screen */
+  .dialog.dialog-movie {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
   }
 
   .movie-detail {
     flex-direction: column;
+    gap: 18px;
     padding: 22px 18px;
   }
 
   .movie-detail-poster {
-    width: 150px;
+    width: 170px;
   }
 
   .movie-detail-text h2 {
-    font-size: 26px;
+    font-size: 22px;
+  }
+
+  .movie-more {
+    padding: 20px 18px 26px;
   }
 
   .dialog-padded {

@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Movie Site</title>
-  <meta name="theme-color" content="#0d1522">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f5b041'/%3E%3Cpath d='M12 9v14l12-7z' fill='%23101826'/%3E%3C/svg%3E">
+  <title>KINO</title>
+  <meta name="theme-color" content="#050b1f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff4b2b'/%3E%3Cpath d='M12 9v14l12-7z' fill='%23ffffff'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
@@ -24,106 +24,48 @@
   <!-- THE TOP BAR: stays at the top while you scroll -->
   <header class="site-header">
     <div class="header-inner">
+      <!-- LEFT: the menu button (three lines) -->
+      <button id="open-menu-button" class="icon-button icon-plain" type="button" aria-label="Цэс нээх">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+
+      <!-- MIDDLE: the logo.
+           WHEN YOUR LOGO IS READY: put the file in this folder as
+           logo.png, then put this line in place of the <span>
+           line below:   <img src="logo.png" alt="KINO">   -->
       <a class="logo" href="#">
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <rect width="32" height="32" rx="8"/>
-          <path d="M12 9v14l12-7z"/>
-        </svg>
-        <span>movie<strong>site</strong></span>
+        <span>KINO</span>
       </a>
 
-      <nav class="nav">
-        <a href="#">Нүүр</a>
-        <a href="#all-movies">Бүх кино</a>
-      </nav>
-
-      <div class="search-box">
-        <input id="search-input" type="search" placeholder="Хайх..." aria-label="Кино хайх">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
-      </div>
-
+      <!-- RIGHT -->
       <div class="header-actions">
-        <button id="theme-button" class="icon-button" type="button" aria-label="Өнгө солих">
+        <button id="theme-button" class="icon-button icon-plain" type="button" aria-label="Өнгө солих">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>
         </button>
 
         <!-- Shown when nobody is logged in -->
-        <button id="open-login-button" class="button button-outline" type="button" hidden>Нэвтрэх</button>
-
-        <!-- Shown only to admins -->
-        <button id="open-admin-button" class="button button-ghost" type="button" hidden>
-          Захиалга <span id="admin-count" class="count-badge" hidden></span>
+        <button id="open-login-button" class="icon-button icon-plain" type="button" aria-label="Нэвтрэх" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.6-3.600 3.400-5.500 7-5.500s6.400 1.900 7 5.500"/></svg>
         </button>
-        <button id="open-upload-button" class="button button-accent" type="button" hidden>Кино нэмэх</button>
 
         <!-- Shown when somebody is logged in -->
         <span id="my-avatar" class="avatar" hidden></span>
-        <button id="logout-button" class="button button-ghost" type="button" hidden>Гарах</button>
       </div>
     </div>
   </header>
 
   <main>
-    <div class="top">
-      <!-- THE MEMBERSHIP BOX -->
-      <aside class="plans-card" aria-labelledby="plans-heading">
-        <h2 id="plans-heading">Гишүүнчлэлийн эрх</h2>
-
-        <!-- One small button per plan. script.js fills this in. -->
-        <div id="plan-tabs" class="plan-tabs"></div>
-
-        <p id="plan-badge" class="plan-badge" hidden></p>
-        <p class="plan-price">
-          <s id="plan-old-price" hidden></s>
-          <strong id="plan-price"></strong>
-        </p>
-        <p id="plan-per-day" class="plan-note"></p>
-
-        <ul class="plan-points">
-          <li>Бүх киног хязгааргүй үзнэ</li>
-          <li>Өндөр чанартай үзвэр</li>
-          <li>Утас, компьютер, ТВ-ээс үзнэ</li>
-        </ul>
-
-        <p id="plan-status" class="plan-status" hidden></p>
-        <button id="plan-buy-button" class="button button-accent button-wide" type="button">Худалдан авах</button>
-      </aside>
-
-      <!-- THE HERO: the big box that shows the top movies in turn -->
-      <section id="hero" class="hero" aria-roledescription="carousel">
-        <img id="hero-backdrop" class="hero-backdrop" alt="" hidden>
-
-        <div class="hero-content">
-          <p id="hero-label" class="hero-label"></p>
-          <h1 id="hero-title"></h1>
-          <p id="hero-description" class="hero-description"></p>
-          <p id="hero-meta" class="hero-meta"></p>
-          <div class="hero-buttons">
-            <button id="hero-button" class="button button-accent button-large" type="button" hidden></button>
-            <button id="hero-more-button" class="button button-outline button-large" type="button" hidden>Дэлгэрэнгүй</button>
-          </div>
-        </div>
-
-        <img id="hero-poster" class="hero-poster" alt="" hidden>
-
-        <button id="hero-previous" class="hero-arrow hero-arrow-left" type="button" aria-label="Өмнөх кино" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6l-6 6 6 6"/></svg>
-        </button>
-        <button id="hero-next" class="hero-arrow hero-arrow-right" type="button" aria-label="Дараагийн кино" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg>
-        </button>
-        <div id="hero-dots" class="hero-dots"></div>
-      </section>
+    <!-- THE SEARCH BOX -->
+    <div class="search-box">
+      <input id="search-input" type="search" placeholder="Кино хайх..." aria-label="Кино хайх">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
     </div>
 
-    <!-- One small button per genre. script.js fills this in. -->
-    <div id="genre-chips" class="chips"></div>
-
-    <!-- THE ROWS: "top rated", "new", "most watched".
+    <!-- THE ROWS: "new", one row per genre, "most watched".
          script.js builds them. Hidden while you search or filter. -->
     <div id="rows"></div>
 
-    <!-- EVERY MOVIE -->
+    <!-- THE GRID: the answer to a search, or one genre -->
     <section id="all-movies" class="shelf">
       <div class="shelf-heading">
         <h2 id="grid-heading">Бүх кино</h2>
@@ -142,7 +84,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>HTML, CSS, JavaScript, Supabase, Cloudflare ашиглан бүтээв.</p>
+    <p>© 2026 KINO. Бүх эрх хуулиар хамгаалагдсан.</p>
   </footer>
 
   <!-- ============================================================
@@ -162,18 +104,22 @@
         <div id="movie-poster" class="movie-detail-poster"></div>
 
         <div class="movie-detail-text">
-          <p id="movie-genre" class="hero-label"></p>
+          <p id="movie-genre" class="movie-detail-genre"></p>
           <h2 id="movie-title"></h2>
+          <p id="movie-price" class="movie-detail-price"></p>
           <p id="movie-meta" class="movie-detail-meta"></p>
           <p id="movie-description" class="movie-detail-description"></p>
 
           <p id="movie-access" class="movie-access" hidden></p>
 
           <div class="movie-detail-buttons">
-            <button id="movie-watch-button" class="button button-accent button-large" type="button" hidden></button>
-            <button id="movie-rent-button" class="button button-accent button-large" type="button" hidden></button>
-            <button id="movie-plan-button" class="button button-outline button-large" type="button" hidden>Гишүүнчлэл авах</button>
+            <button id="movie-watch-button" class="button button-accent button-big" type="button" hidden></button>
+            <button id="movie-rent-button" class="button button-accent button-big" type="button" hidden></button>
+            <button id="movie-plan-button" class="button button-accent button-big" type="button" hidden>🎁 БАГЦ АВАХ</button>
           </div>
+          <p id="movie-plan-note" class="movie-plan-note" hidden>Та багц авснаар манай бүх киног үзэх эрхтэй болно. Илүү хямд, илүү хэмнэлттэй.</p>
+
+          <p class="movie-detail-line">Ангилал: <span id="movie-category"></span></p>
 
           <div class="movie-detail-actions">
             <button id="movie-like-button" class="like-button" type="button" aria-pressed="false">
@@ -191,6 +137,70 @@
           <button id="movie-delete-button" class="button button-danger" type="button" hidden>Кино устгах</button>
         </div>
       </div>
+
+      <!-- "You may also like". script.js fills the list. -->
+      <section id="movie-more" class="movie-more" hidden>
+        <h3>Санал болгох</h3>
+        <ul id="movie-more-list" class="movie-grid"></ul>
+      </section>
+    </div>
+  </dialog>
+
+  <!-- THE MENU: slides in from the left -->
+  <dialog id="menu-dialog" class="dialog dialog-menu" aria-label="Цэс">
+    <div class="dialog-body dialog-padded">
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+
+      <p class="menu-heading">Цэс</p>
+      <button id="menu-home-button" class="menu-item" type="button">Нүүр</button>
+      <button id="open-plans-button" class="menu-item menu-item-accent" type="button">🎁 Багц авах</button>
+
+      <p class="menu-heading">Ангилал</p>
+      <!-- One button per genre. script.js fills this in. -->
+      <div id="genre-chips"></div>
+
+      <div class="menu-bottom">
+        <!-- Shown only to admins -->
+        <button id="open-admin-button" class="button button-ghost button-wide" type="button" hidden>
+          Захиалга <span id="admin-count" class="count-badge" hidden></span>
+        </button>
+        <button id="open-upload-button" class="button button-accent button-wide" type="button" hidden>Кино нэмэх</button>
+
+        <!-- Shown when somebody is logged in -->
+        <button id="logout-button" class="button button-ghost button-wide" type="button" hidden>Гарах</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- THE MEMBERSHIP PLANS ("bundle") -->
+  <dialog id="plans-dialog" class="dialog" aria-labelledby="plans-heading">
+    <div class="dialog-body dialog-padded plans-card">
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h2 id="plans-heading">Багц авах</h2>
+      <p class="dialog-hint">Багцтай бол бүх киног хязгааргүй үзнэ.</p>
+
+      <!-- One small button per plan. script.js fills this in. -->
+      <div id="plan-tabs" class="plan-tabs"></div>
+
+      <p id="plan-badge" class="plan-badge" hidden></p>
+      <p class="plan-price">
+        <s id="plan-old-price" hidden></s>
+        <strong id="plan-price"></strong>
+      </p>
+      <p id="plan-per-day" class="plan-note"></p>
+
+      <ul class="plan-points">
+        <li>Бүх киног хязгааргүй үзнэ</li>
+        <li>Өндөр чанартай үзвэр</li>
+        <li>Утас, компьютер, ТВ-ээс үзнэ</li>
+      </ul>
+
+      <p id="plan-status" class="plan-status" hidden></p>
+      <button id="plan-buy-button" class="button button-accent button-wide" type="button">Худалдан авах</button>
     </div>
   </dialog>
 

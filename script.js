@@ -8,7 +8,10 @@
 // STAGE 5: subscriptions. Big movies are only for people who paid.
 // STAGE 6: a real movie shop: membership plans, renting one movie,
 //          orders with a payment code, likes, ratings, an admin
-//          window, a hero that changes, light and dark colors.
+//          window, light and dark colors.
+// STAGE 7: a new look. The front page is rows of posters, one row
+//          per genre. A lock on a poster means "not paid yet". The
+//          menu and the membership plans are pop-up windows.
 // ---------------------------------------------------------------
 
 // WHERE CUSTOMERS SEND THE MONEY.
@@ -24,9 +27,9 @@ const PAYMENT = {
 // on the screen.
 const RENT_HOURS = 72;
 
-// Same Supabase project as the earlier websites.
-const SUPABASE_URL = "https://xmkjrncoexgjcyjcaukf.supabase.co";
-const SUPABASE_KEY = "sb_publishable_zy4lZL5239LLuA5Cbz1Gew_FNkccaUz";
+// The Supabase project "11.16 new kino site".
+const SUPABASE_URL = "https://oyjfyivsopjyrilsgapn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_8xscffZzWJjrHjpBDusB0A_SrFnoQaJ";
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -49,11 +52,11 @@ const GENRES = [
   "Адал явдал", "Хүүхдийн", "Баримтат", "Бусад",
 ];
 
-// How many movies take turns in the hero, and how long each stays.
-const HERO_COUNT = 8;
-const HERO_SECONDS = 8;
+// How many posters one row on the front page shows.
+const ROW_COUNT = 12;
 
 // Small drawings (icons).
+const LOCK_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0110 0v2h1a1 1 0 011 1v9a1 1 0 01-1 1H6a1 1 0 01-1-1v-9a1 1 0 011-1zm2 0h6V8a3 3 0 00-6 0z"/></svg>';
 const PLAY_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
 
 // A shortcut: $("some-id") finds the element with that id.
@@ -70,6 +73,11 @@ const adminCount = $("admin-count");
 const openUploadButton = $("open-upload-button");
 const myAvatar = $("my-avatar");
 const logoutButton = $("logout-button");
+const openMenuButton = $("open-menu-button");
+const menuDialog = $("menu-dialog");
+const menuHomeButton = $("menu-home-button");
+const openPlansButton = $("open-plans-button");
+const plansDialog = $("plans-dialog");
 
 const planTabs = $("plan-tabs");
 const planBadge = $("plan-badge");
@@ -79,25 +87,12 @@ const planPerDay = $("plan-per-day");
 const planStatus = $("plan-status");
 const planBuyButton = $("plan-buy-button");
 
-const hero = $("hero");
-const heroBackdrop = $("hero-backdrop");
-const heroContent = hero.querySelector(".hero-content");
-const heroLabel = $("hero-label");
-const heroTitle = $("hero-title");
-const heroDescription = $("hero-description");
-const heroMeta = $("hero-meta");
-const heroButton = $("hero-button");
-const heroMoreButton = $("hero-more-button");
-const heroPoster = $("hero-poster");
-const heroPrevious = $("hero-previous");
-const heroNext = $("hero-next");
-const heroDots = $("hero-dots");
-
 const genreChips = $("genre-chips");
 const rowsBox = $("rows");
 const gridHeading = $("grid-heading");
 const movieCount = $("movie-count");
 const movieList = $("movie-list");
+const allMoviesSection = $("all-movies");
 
 const movieDialog = $("movie-dialog");
 const moviePoster = $("movie-poster");
@@ -113,6 +108,11 @@ const movieLikeButton = $("movie-like-button");
 const movieLikeCount = $("movie-like-count");
 const movieStars = $("movie-stars");
 const movieDeleteButton = $("movie-delete-button");
+const moviePrice = $("movie-price");
+const moviePlanNote = $("movie-plan-note");
+const movieCategory = $("movie-category");
+const movieMore = $("movie-more");
+const movieMoreList = $("movie-more-list");
 
 const playerDialog = $("player-dialog");
 const playerVideo = $("player-video");
@@ -189,9 +189,6 @@ let allMovies = [];        // every movie from the database
 let plans = [];            // the membership plans
 let chosenPlanId = "month";
 let chosenGenre = null;    // null means "All"
-let heroMovies = [];       // the movies that take turns in the hero
-let heroIndex = 0;
-let heroTimer = null;
 let openMovie = null;      // the movie in the detail window
 let currentOrder = null;   // the order in the payment window
 
@@ -378,7 +375,6 @@ async function loadAccount() {
 function showEverything() {
   showHeader();
   showPlans();
-  showHero();
   showGenreChips();
   showRows();
   showMovies(false);
@@ -461,125 +457,6 @@ function showPlans() {
 }
 
 // ---------------------------------------------------------------
-// THE HERO: the top movies take turns
-// ---------------------------------------------------------------
-function pickHeroMovies() {
-  // The most watched first. Movies with the same views: newest first
-  // (allMovies is already newest first, and sort() keeps that order).
-  heroMovies = allMovies
-    .slice()
-    .sort(function (a, b) {
-      return b.view_count - a.view_count;
-    })
-    .slice(0, HERO_COUNT);
-
-  if (heroIndex >= heroMovies.length) {
-    heroIndex = 0;
-  }
-}
-
-function showHero() {
-  const row = heroMovies[heroIndex];
-  const many = heroMovies.length > 1;
-
-  heroPrevious.hidden = !many;
-  heroNext.hidden = !many;
-  heroButton.hidden = false;
-  heroMoreButton.hidden = !row;
-
-  heroDots.innerHTML = "";
-  if (many) {
-    heroMovies.forEach(function (movie, index) {
-      const dot = document.createElement("button");
-      dot.type = "button";
-      dot.className = "hero-dot";
-      dot.setAttribute("aria-label", movie.title);
-      dot.setAttribute("aria-current", String(index === heroIndex));
-      dot.addEventListener("click", function () {
-        goToHero(index);
-      });
-      heroDots.appendChild(dot);
-    });
-  }
-
-  if (!row) {
-    heroLabel.textContent = "";
-    heroTitle.textContent = "Таны кино нэг дор";
-    heroDescription.textContent = "Одоогоор кино алга. Удахгүй нэмэгдэнэ.";
-    heroMeta.textContent = "";
-    heroButton.hidden = !account.isAdmin;
-    heroButton.textContent = "Кино нэмэх";
-    heroBackdrop.hidden = true;
-    heroPoster.hidden = true;
-    return;
-  }
-
-  heroLabel.textContent = [row.genre, row.year].filter(Boolean).join(" · ") || "Онцлох кино";
-  heroTitle.textContent = row.title;
-  heroDescription.textContent = row.description || "";
-
-  const facts = [];
-  if (row.duration_minutes) {
-    facts.push(row.duration_minutes + " мин");
-  }
-  if (ratingText(row)) {
-    facts.push("★ " + ratingText(row));
-  }
-  facts.push(isPaidMovie(row) ? RENT_HOURS + " цаг үзэх эрх" : "Үнэгүй");
-  heroMeta.textContent = facts.join("  ·  ");
-
-  if (canWatch(row)) {
-    heroButton.innerHTML = PLAY_ICON + "Үзэх";
-  } else {
-    heroButton.textContent = "Түрээслэх · " + money(row.rent_price);
-  }
-
-  heroBackdrop.hidden = !row.poster_path;
-  heroPoster.hidden = !row.poster_path;
-  if (row.poster_path) {
-    const address = fileUrl(row.poster_path);
-    // Only change the picture when it is a different one.
-    if (heroPoster.getAttribute("src") !== address) {
-      heroPoster.src = address;
-      heroBackdrop.src = address;
-    }
-  }
-}
-
-function goToHero(index) {
-  // "%" wraps around: after the last movie comes the first one.
-  heroIndex = (index + heroMovies.length) % heroMovies.length;
-  showHero();
-
-  // Play the little "rise" movement again.
-  for (const element of [heroContent, heroPoster]) {
-    element.style.animation = "none";
-    element.offsetWidth; // makes the browser notice the change
-    element.style.animation = "";
-  }
-
-  startHeroTimer();
-}
-
-// Move to the next movie every few seconds. Not while a window is
-// open, the mouse is on the hero, or the tab is in the background,
-// and not for people who turned movement off in their settings.
-function startHeroTimer() {
-  clearInterval(heroTimer);
-
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    return;
-  }
-
-  heroTimer = setInterval(function () {
-    const busy = document.querySelector("dialog[open]") || document.hidden || hero.matches(":hover");
-    if (!busy && heroMovies.length > 1) {
-      goToHero(heroIndex + 1);
-    }
-  }, HERO_SECONDS * 1000);
-}
-
-// ---------------------------------------------------------------
 // READ THE MOVIES (SELECT)
 // ---------------------------------------------------------------
 const MOVIE_COLUMNS =
@@ -600,12 +477,9 @@ async function loadMovies() {
   }
 
   allMovies = data;
-  pickHeroMovies();
-  showHero();
   showGenreChips();
   showRows();
   showMovies(true);
-  startHeroTimer();
 }
 
 // Ask the database for ONE movie again (after a like, a rating or
@@ -624,9 +498,6 @@ async function refreshMovie(id) {
   allMovies = allMovies.map(function (row) {
     return row.id === id ? data : row;
   });
-  heroMovies = heroMovies.map(function (row) {
-    return row.id === id ? data : row;
-  });
   if (openMovie && openMovie.id === id) {
     openMovie = data;
   }
@@ -635,22 +506,33 @@ async function refreshMovie(id) {
 }
 
 // ---------------------------------------------------------------
-// GENRE BUTTONS
+// GENRES
+// chooseGenre(null) means "all movies": the front page with rows.
+// The buttons are a list inside the menu window.
 // ---------------------------------------------------------------
+function chooseGenre(genre) {
+  chosenGenre = genre;
+  searchInput.value = "";
+  showGenreChips();
+  showRows();
+  showMovies(false);
+  if (menuDialog.open) {
+    menuDialog.close();
+  }
+  window.scrollTo({ top: 0 });
+}
+
 function showGenreChips() {
   genreChips.innerHTML = "";
 
-  for (const genre of [null].concat(GENRES)) {
+  for (const genre of GENRES) {
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.className = "chip";
-    chip.textContent = genre || "Бүгд";
+    chip.className = "menu-item";
+    chip.textContent = genre;
     chip.setAttribute("aria-pressed", String(genre === chosenGenre));
     chip.addEventListener("click", function () {
-      chosenGenre = genre;
-      showGenreChips();
-      showRows();
-      showMovies(false);
+      chooseGenre(genre);
     });
     genreChips.appendChild(chip);
   }
@@ -660,9 +542,9 @@ function showGenreChips() {
 // ONE MOVIE CARD
 // Builds:
 // <li class="movie-card">
-//   <button class="movie-poster"> picture + price tag + play icon </button>
+//   <button class="movie-poster"> picture + lock or play icon </button>
 //   <p class="movie-title">the title</p>
-//   <p class="movie-info">85 мин · ★ 8.5 · 24 үзсэн</p>
+//   <p class="movie-price">4,900₮</p>
 // </li>
 // ---------------------------------------------------------------
 function fillPoster(box, row) {
@@ -702,23 +584,13 @@ function makeCard(row, index, animate) {
   poster.setAttribute("aria-label", row.title);
   fillPoster(poster, row);
 
-  const tag = document.createElement("span");
-  tag.className = "movie-tag";
-  if (!isPaidMovie(row)) {
-    tag.textContent = "Үнэгүй";
-    tag.classList.add("open");
-  } else if (canWatch(row)) {
-    tag.textContent = "Нээлттэй";
-    tag.classList.add("open");
-  } else {
-    tag.textContent = money(row.rent_price);
-  }
-  poster.appendChild(tag);
-
-  const play = document.createElement("span");
-  play.className = "movie-play";
-  play.innerHTML = PLAY_ICON;
-  poster.appendChild(play);
+  // A lock in the middle of a poster that is not paid for yet.
+  // Otherwise a play button that shows when the mouse is on it.
+  const locked = !canWatch(row);
+  const badge = document.createElement("span");
+  badge.className = locked ? "movie-lock" : "movie-play";
+  badge.innerHTML = locked ? LOCK_ICON : PLAY_ICON;
+  poster.appendChild(badge);
 
   poster.addEventListener("click", function () {
     openMovieDialog(row);
@@ -728,27 +600,18 @@ function makeCard(row, index, animate) {
   title.className = "movie-title";
   title.textContent = row.title;
 
+  // Under the title: the price, or why you may already watch.
   const info = document.createElement("p");
-  info.className = "movie-info";
-  const parts = [];
-  if (row.duration_minutes) {
-    parts.push(document.createTextNode(row.duration_minutes + " мин"));
+  info.className = "movie-price";
+  if (!isPaidMovie(row)) {
+    info.textContent = "Үнэгүй";
+    info.classList.add("open");
+  } else if (locked) {
+    info.textContent = money(row.rent_price);
+  } else {
+    info.textContent = "Нээлттэй";
+    info.classList.add("open");
   }
-  if (ratingText(row)) {
-    const star = document.createElement("span");
-    star.className = "star";
-    star.textContent = "★ " + ratingText(row);
-    parts.push(star);
-  }
-  if (row.view_count > 0) {
-    parts.push(document.createTextNode(row.view_count + " үзсэн"));
-  }
-  parts.forEach(function (part, position) {
-    if (position > 0) {
-      info.appendChild(document.createTextNode(" · "));
-    }
-    info.appendChild(part);
-  });
 
   const item = document.createElement("li");
   item.className = "movie-card";
@@ -765,14 +628,15 @@ function makeCard(row, index, animate) {
 }
 
 // ---------------------------------------------------------------
-// THE ROWS: top rated, new, most watched
+// THE ROWS: new movies, one row for each genre, most watched.
 // Shown only on the front view: no search text and no genre chosen.
 // ---------------------------------------------------------------
 function isFiltering() {
   return chosenGenre !== null || searchInput.value.trim() !== "";
 }
 
-function addRow(heading, rows) {
+// "genre" is optional. With it, the row gets a "see all" button.
+function addRow(heading, rows, genre) {
   if (rows.length === 0) {
     return;
   }
@@ -786,8 +650,19 @@ function addRow(heading, rows) {
   title.textContent = heading;
   top.appendChild(title);
 
+  if (genre) {
+    const all = document.createElement("button");
+    all.type = "button";
+    all.className = "shelf-link";
+    all.textContent = "Бүгдийг үзэх";
+    all.addEventListener("click", function () {
+      chooseGenre(genre);
+    });
+    top.appendChild(all);
+  }
+
   const list = document.createElement("ul");
-  list.className = "movie-row";
+  list.className = "movie-grid";
   rows.forEach(function (row, index) {
     list.appendChild(makeCard(row, index, false));
   });
@@ -800,19 +675,19 @@ function addRow(heading, rows) {
 function showRows() {
   rowsBox.innerHTML = "";
 
-  // With only a few movies, three rows would just repeat the grid.
-  if (isFiltering() || allMovies.length < 6) {
+  if (isFiltering()) {
     return;
   }
 
-  const rated = allMovies
-    .filter(function (row) {
-      return row.rating_count > 0;
-    })
-    .sort(function (a, b) {
-      return b.rating_sum / b.rating_count - a.rating_sum / a.rating_count;
-    })
-    .slice(0, 5);
+  // allMovies is already newest first.
+  addRow("Шинэ кино", allMovies.slice(0, ROW_COUNT));
+
+  for (const genre of GENRES) {
+    const inGenre = allMovies.filter(function (row) {
+      return row.genre === genre;
+    });
+    addRow(genre, inGenre.slice(0, ROW_COUNT), genre);
+  }
 
   const watched = allMovies
     .filter(function (row) {
@@ -821,11 +696,9 @@ function showRows() {
     .sort(function (a, b) {
       return b.view_count - a.view_count;
     })
-    .slice(0, 12);
+    .slice(0, ROW_COUNT);
 
-  addRow("Хамгийн өндөр үнэлгээтэй", rated);
-  addRow("Шинээр нэмэгдсэн", allMovies.slice(0, 12));
-  addRow("Хамгийн их үзсэн", watched);
+  addRow("Хандалт ихтэй", watched);
 }
 
 // ---------------------------------------------------------------
@@ -842,6 +715,10 @@ function showMovies(animate) {
     const searchMatches = search === "" || row.title.toLowerCase().includes(search);
     return genreMatches && searchMatches;
   });
+
+  // On the front page the rows show the movies. The grid is only
+  // for a search, for one genre, or before the first movie is added.
+  allMoviesSection.hidden = !isFiltering() && allMovies.length > 0;
 
   gridHeading.textContent = search !== "" ? "Хайлтын үр дүн" : chosenGenre || "Бүх кино";
   movieCount.textContent = data.length + " кино";
@@ -871,13 +748,16 @@ function openMovieDialog(row) {
   if (!movieDialog.open) {
     movieDialog.showModal();
   }
+  // A click on a suggested movie: go back to the top of the window.
+  movieDialog.scrollTop = 0;
 }
 
 function showMovieDialog() {
   const row = openMovie;
 
   fillPoster(moviePoster, row);
-  movieGenre.textContent = [row.genre, row.year].filter(Boolean).join(" · ");
+  movieGenre.textContent = row.genre || "Кино";
+  movieCategory.textContent = [row.genre, row.year].filter(Boolean).join(" · ") || "-";
   movieTitle.textContent = row.title;
   movieDescription.textContent = row.description || "";
 
@@ -907,8 +787,14 @@ function showMovieDialog() {
   movieWatchButton.hidden = !allowed;
   movieWatchButton.innerHTML = PLAY_ICON + "Үзэх";
   movieRentButton.hidden = allowed;
-  movieRentButton.textContent = "Түрээслэх · " + money(row.rent_price) + " (" + RENT_HOURS + " цаг)";
+  movieRentButton.textContent = "🎬 ТҮРЭЭСЛЭХ " + money(row.rent_price);
   moviePlanButton.hidden = allowed;
+  moviePlanNote.hidden = allowed;
+
+  // The price under the title. Free movies say so.
+  moviePrice.textContent = isPaidMovie(row)
+    ? money(row.rent_price) + " · " + RENT_HOURS + " цагийн түрээс"
+    : "Үнэгүй";
 
   // Why may I watch? Tell the person.
   let reason = "";
@@ -941,6 +827,25 @@ function showMovieDialog() {
   }
 
   movieDeleteButton.hidden = !account.isAdmin;
+
+  // "You may also like": other movies of the same genre first, then
+  // the newest ones, six in all.
+  const others = allMovies.filter(function (other) {
+    return other.id !== row.id;
+  });
+  const sameGenre = others.filter(function (other) {
+    return row.genre && other.genre === row.genre;
+  });
+  const rest = others.filter(function (other) {
+    return !sameGenre.includes(other);
+  });
+  const suggestions = sameGenre.concat(rest).slice(0, 6);
+
+  movieMore.hidden = suggestions.length === 0;
+  movieMoreList.innerHTML = "";
+  suggestions.forEach(function (other, index) {
+    movieMoreList.appendChild(makeCard(other, index, false));
+  });
 }
 
 // Liking, rating, watching a paid movie and buying all need a login.
@@ -951,8 +856,10 @@ function needLogin(reason) {
     return true;
   }
   showFormMessage(loginMessage, reason);
-  if (movieDialog.open) {
-    movieDialog.close();
+  for (const dialog of [movieDialog, plansDialog, menuDialog]) {
+    if (dialog.open) {
+      dialog.close();
+    }
   }
   loginDialog.showModal();
   return false;
@@ -1091,6 +998,9 @@ async function startOrder(kind, planId, movieId, itemName) {
 
   if (movieDialog.open) {
     movieDialog.close();
+  }
+  if (plansDialog.open) {
+    plansDialog.close();
   }
 
   orderItem.textContent = itemName;
@@ -1802,43 +1712,44 @@ openLoginButton.addEventListener("click", function () {
   showFormMessage(loginMessage, "");
   loginDialog.showModal();
 });
+openMenuButton.addEventListener("click", function () {
+  menuDialog.showModal();
+});
+menuHomeButton.addEventListener("click", function () {
+  chooseGenre(null);
+});
+
+// Show the membership plans. First close the window we came from.
+function openPlans() {
+  for (const dialog of [menuDialog, movieDialog]) {
+    if (dialog.open) {
+      dialog.close();
+    }
+  }
+  plansDialog.showModal();
+}
+openPlansButton.addEventListener("click", openPlans);
+
 openUploadButton.addEventListener("click", function () {
+  menuDialog.close();
   uploadDialog.showModal();
 });
 openAdminButton.addEventListener("click", function () {
+  menuDialog.close();
   adminDialog.showModal();
   showAdminOrders();
 });
+logoutButton.addEventListener("click", function () {
+  menuDialog.close();
+});
 
 planBuyButton.addEventListener("click", buyPlan);
-
-heroPrevious.addEventListener("click", function () {
-  goToHero(heroIndex - 1);
-});
-heroNext.addEventListener("click", function () {
-  goToHero(heroIndex + 1);
-});
-// The big hero button: watch the movie if allowed, otherwise open
-// its window, where the rent and membership buttons are.
-heroButton.addEventListener("click", function () {
-  const row = heroMovies[heroIndex];
-  if (!row) {
-    uploadDialog.showModal();
-  } else if (canWatch(row)) {
-    playMovie(row);
-  } else {
-    openMovieDialog(row);
-  }
-});
-heroMoreButton.addEventListener("click", function () {
-  openMovieDialog(heroMovies[heroIndex]);
-});
 
 movieWatchButton.addEventListener("click", function () {
   playMovie(openMovie);
 });
 movieRentButton.addEventListener("click", rentMovie);
-moviePlanButton.addEventListener("click", buyPlan);
+moviePlanButton.addEventListener("click", openPlans);
 movieLikeButton.addEventListener("click", likeMovie);
 movieDeleteButton.addEventListener("click", deleteMovie);
 
@@ -1860,6 +1771,11 @@ for (const dialog of document.querySelectorAll("dialog")) {
 
 // "input" fires on every letter typed in the search box.
 searchInput.addEventListener("input", function () {
+  // A search looks through every movie, not only one genre.
+  if (chosenGenre !== null) {
+    chosenGenre = null;
+    showGenreChips();
+  }
   showRows();
   showMovies(false);
 });
