@@ -257,6 +257,14 @@
       <h3 class="profile-heading">Таалагдсан кино</h3>
       <ul id="profile-likes" class="profile-list"></ul>
 
+      <h3 class="profile-heading">Нууц үг солих</h3>
+      <form id="password-form">
+        <label for="new-password-input">Шинэ нууц үг</label>
+        <input id="new-password-input" type="password" autocomplete="new-password" minlength="6" required>
+        <p id="password-message" class="form-message" role="status"></p>
+        <button id="password-button" class="button button-ghost button-wide" type="submit">Нууц үг солих</button>
+      </form>
+
       <button id="profile-logout-button" class="button button-ghost button-wide profile-logout" type="button">Гарах</button>
     </div>
   </dialog>
@@ -282,6 +290,9 @@
 
         <label for="password-input">Нууц үг</label>
         <input id="password-input" type="password" autocomplete="current-password" minlength="6" required>
+
+        <!-- Only in the log in view -->
+        <button id="forgot-button" class="link-button" type="button">Нууц үгээ мартсан уу?</button>
 
         <p id="login-message" class="form-message" role="status"></p>
 
@@ -342,6 +353,19 @@
 
       <h3 class="admin-subheading">Сүүлийн 30 хоног</h3>
       <ul id="admin-done" class="order-list"></ul>
+
+      <!-- A customer forgot their password and contacted you:
+           give them a new one here, and tell it to them. -->
+      <h3 class="admin-subheading">Хэрэглэгчийн нууц үг сэргээх</h3>
+      <p class="dialog-hint">Нууц үгээ мартсан хэрэглэгчид шинэ нууц үг өгнө. Зөвхөн өөрөө мөн гэдгийг нь мэдэж байгаа үед хийнэ.</p>
+      <form id="reset-form">
+        <label for="reset-email-input">Хэрэглэгчийн имэйл</label>
+        <input id="reset-email-input" type="email" autocomplete="off" required>
+        <label for="reset-password-input">Шинэ нууц үг</label>
+        <input id="reset-password-input" type="text" autocomplete="off" minlength="6" required>
+        <p id="reset-message" class="form-message" role="status"></p>
+        <button id="reset-button" class="button button-ghost button-wide" type="submit">Нууц үг солих</button>
+      </form>
     </div>
   </dialog>
 

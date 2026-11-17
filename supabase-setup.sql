@@ -1139,3 +1139,55 @@ update public.movies set genre = null
 
 alter table public.movies add constraint movies_genre_check
   check (genre in ('Солонгос кино', 'Холливүүд кино', 'Хятад кино', 'Америк reel кино'));
+
+
+
+-- ===============================================================
+-- STAGE 12: A FORGOTTEN PASSWORD
+--
+-- The site sends no emails. A customer who forgot their password
+-- contacts the admin, and the admin gives them a new one in the
+-- orders window. Only an admin may call this, and it cannot touch
+-- another admin's account.
+-- ===============================================================
+create or replace function public.admin_set_password(customer_email text, new_password text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid;
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin may do this.';
+  end if;
+
+  if new_password is null or length(new_password) < 6 then
+    raise exception 'The password must be 6 letters or longer.';
+  end if;
+
+  select id into v_user from auth.users
+  where lower(email) = lower(btrim(customer_email));
+
+  if v_user is null then
+    raise exception 'No account with the email %', customer_email;
+  end if;
+
+  if exists (select 1 from public.admins where user_id = v_user) then
+    raise exception 'An admin changes their own password on "my page".';
+  end if;
+
+  -- Passwords are never saved as they are, only scrambled ("hashed").
+  update auth.users
+  set encrypted_password = extensions.crypt(new_password, extensions.gen_salt('bf')),
+      updated_at = now()
+  where id = v_user;
+
+  -- Log the account out everywhere, so the old login stops working.
+  delete from auth.sessions where user_id = v_user;
+end;
+$$;
+
+revoke execute on function public.admin_set_password(text, text) from public, anon;
+grant execute on function public.admin_set_password(text, text) to authenticated;

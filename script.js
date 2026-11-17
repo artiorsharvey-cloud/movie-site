@@ -16,6 +16,11 @@
 
 // WHERE CUSTOMERS SEND THE MONEY.
 // Change these three lines if your bank details change.
+// Shown to a customer who forgot their password: how to reach you.
+// Write your phone number or Facebook page between the quotes,
+// for example "Утас: 9911-2233". Empty means "contact the admin".
+const CONTACT = "";
+
 const PAYMENT = {
   bank: "Khan Bank",
   account: "7005005244142000",
@@ -148,6 +153,18 @@ const passwordInput = $("password-input");
 const loginButton = $("login-button");
 const signupButton = $("signup-button");
 const loginMessage = $("login-message");
+const forgotButton = $("forgot-button");
+
+const passwordForm = $("password-form");
+const newPasswordInput = $("new-password-input");
+const passwordMessage = $("password-message");
+const passwordButton = $("password-button");
+
+const resetForm = $("reset-form");
+const resetEmailInput = $("reset-email-input");
+const resetPasswordInput = $("reset-password-input");
+const resetMessage = $("reset-message");
+const resetButton = $("reset-button");
 
 const orderDialog = $("order-dialog");
 const orderItem = $("order-item");
@@ -316,6 +333,10 @@ function showHeader() {
   openAdminButton.hidden = !account.isAdmin;
   openUploadButton.hidden = !account.isAdmin;
   profileAdmin.hidden = !account.isAdmin;
+
+  if (!account.isAdmin) {
+    delete myAvatar.dataset.count;
+  }
 
   if (loggedIn) {
     myAvatar.textContent = myName().charAt(0);
@@ -1233,7 +1254,29 @@ async function loadAdminCount() {
   }
   adminCount.hidden = count === 0;
   adminCount.textContent = count;
+
+  // The same number as a small red dot on the round letter at the
+  // top, so you see it without opening anything.
+  if (count > 0) {
+    myAvatar.dataset.count = count;
+  } else {
+    delete myAvatar.dataset.count;
+  }
 }
+
+// Ask again every minute, and when you come back to this tab, so a
+// new order shows up without reloading the page.
+setInterval(function () {
+  if (account.isAdmin && !document.hidden) {
+    loadAdminCount();
+  }
+}, 60000);
+
+document.addEventListener("visibilitychange", function () {
+  if (account.isAdmin && !document.hidden) {
+    loadAdminCount();
+  }
+});
 
 function makeOrderRow(order) {
   const item = document.createElement("li");
@@ -1779,6 +1822,7 @@ function showLoginMode(signup) {
 
   nameField.hidden = !signup;
   nameInput.required = signup;
+  forgotButton.hidden = signup;
   passwordInput.autocomplete = signup ? "new-password" : "current-password";
 
   loginHeading.textContent = signup ? "Бүртгүүлэх" : "Нэвтрэх";
@@ -1871,6 +1915,68 @@ async function logIn(event) {
   showFormMessage(loginMessage, "");
 }
 
+// ---------------------------------------------------------------
+// PASSWORDS
+// The site sends no emails, so a forgotten password goes like this:
+//   1. the customer contacts you (the admin),
+//   2. you give them a new password in the orders window,
+//   3. they log in and change it to their own on "my page".
+// ---------------------------------------------------------------
+function showForgotHelp() {
+  showFormMessage(
+    loginMessage,
+    "Нууц үгээ сэргээхийн тулд админтай холбогдож, бүртгэлтэй имэйлээ хэлнэ үү. " +
+      "Админ танд шинэ нууц үг өгнө." + (CONTACT ? " " + CONTACT : "")
+  );
+}
+
+// A logged-in person changes their own password.
+async function changePassword(event) {
+  event.preventDefault();
+
+  passwordButton.disabled = true;
+  showFormMessage(passwordMessage, "Сольж байна...");
+
+  const { error } = await db.auth.updateUser({ password: newPasswordInput.value });
+
+  passwordButton.disabled = false;
+
+  if (error) {
+    console.error("Change password failed:", error);
+    showFormMessage(passwordMessage, "Сольж чадсангүй. (" + error.message + ")", true);
+    return;
+  }
+
+  newPasswordInput.value = "";
+  showFormMessage(passwordMessage, "Нууц үг солигдлоо.");
+}
+
+// The admin gives a customer a new password. The database function
+// admin_set_password refuses anyone who is not an admin.
+async function resetCustomerPassword(event) {
+  event.preventDefault();
+
+  resetButton.disabled = true;
+  showFormMessage(resetMessage, "Сольж байна...");
+
+  const email = resetEmailInput.value.trim();
+  const { error } = await db.rpc("admin_set_password", {
+    customer_email: email,
+    new_password: resetPasswordInput.value,
+  });
+
+  resetButton.disabled = false;
+
+  if (error) {
+    console.error("Reset password failed:", error);
+    showFormMessage(resetMessage, "Сольж чадсангүй. (" + error.message + ")", true);
+    return;
+  }
+
+  showFormMessage(resetMessage, email + " хаягийн нууц үг солигдлоо. Шинэ нууц үгийг хэрэглэгчид хэлнэ үү.");
+  resetForm.reset();
+}
+
 async function logOut() {
   const { error } = await db.auth.signOut();
 
@@ -1892,6 +1998,9 @@ signupButton.addEventListener("click", function () {
   showLoginMode(!signupMode);
 });
 logoutButton.addEventListener("click", logOut);
+forgotButton.addEventListener("click", showForgotHelp);
+passwordForm.addEventListener("submit", changePassword);
+resetForm.addEventListener("submit", resetCustomerPassword);
 movieForm.addEventListener("submit", addMovie);
 videoInput.addEventListener("change", showChosenVideo);
 posterInput.addEventListener("change", showChosenPoster);
