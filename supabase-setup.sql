@@ -1191,3 +1191,172 @@ $$;
 
 revoke execute on function public.admin_set_password(text, text) from public, anon;
 grant execute on function public.admin_set_password(text, text) to authenticated;
+
+
+
+-- ===============================================================
+-- STAGE 13: THE MEMBERS LIST FOR THE ADMIN
+--
+-- The admin window shows everyone with a bundle, with a bar for how
+-- much time is left. For the bar we must know when the paid period
+-- began, so subscriptions gets one new column: started_at.
+--
+-- Nobody has to remove a member when the time is up. can_watch
+-- compares paid_until with the clock every time a movie is opened.
+-- ===============================================================
+alter table public.subscriptions add column if not exists started_at timestamptz;
+
+update public.subscriptions s
+set started_at = coalesce(
+  (select min(o.paid_at) from public.orders o
+   where o.user_id = s.user_id and o.kind = 'plan' and o.status = 'paid'),
+  s.updated_at, now())
+where s.started_at is null;
+
+alter table public.subscriptions alter column started_at set default now();
+alter table public.subscriptions alter column started_at set not null;
+
+-- confirm_order: same as before, and it now also keeps started_at.
+-- A bundle bought while the old one still runs keeps the old start;
+-- one bought after it ended starts a new period.
+create or replace function public.confirm_order(order_id bigint)
+returns public.orders
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_order public.orders;
+  v_days integer;
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin can confirm orders.';
+  end if;
+
+  select o.* into v_order from public.orders o where o.id = order_id for update;
+
+  if not found then
+    raise exception 'There is no such order.';
+  end if;
+  if v_order.status <> 'pending' then
+    raise exception 'This order is already %.', v_order.status;
+  end if;
+
+  if v_order.kind = 'plan' then
+    select p.days into v_days from public.plans p where p.id = v_order.plan_id;
+    if v_days is null then
+      raise exception 'The plan of this order no longer exists.';
+    end if;
+
+    insert into public.subscriptions (user_id, paid_until, started_at)
+    values (v_order.user_id, now() + make_interval(days => v_days), now())
+    on conflict (user_id) do update
+      set started_at = case when public.subscriptions.paid_until > now()
+                            then public.subscriptions.started_at else now() end,
+          paid_until = greatest(public.subscriptions.paid_until, now())
+                       + make_interval(days => v_days),
+          updated_at = now();
+  else
+    if v_order.movie_id is null then
+      raise exception 'The movie of this order no longer exists.';
+    end if;
+
+    insert into public.rentals (user_id, movie_id, expires_at)
+    values (v_order.user_id, v_order.movie_id, now() + interval '72 hours')
+    on conflict (user_id, movie_id) do update
+      set expires_at = greatest(public.rentals.expires_at, now())
+                       + interval '72 hours';
+  end if;
+
+  update public.orders o
+  set status = 'paid', paid_at = now()
+  where o.id = order_id
+  returning o.* into v_order;
+
+  return v_order;
+end;
+$$;
+
+-- The list for the admin window: everyone with a bundle that still
+-- runs, or that ended in the last 30 days.
+create or replace function public.admin_members()
+returns table (
+  user_id uuid,
+  name text,
+  email text,
+  started_at timestamptz,
+  paid_until timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin can see the members.';
+  end if;
+
+  return query
+  select
+    s.user_id,
+    coalesce(u.raw_user_meta_data->>'name', u.raw_user_meta_data->>'full_name', '')::text,
+    u.email::text,
+    s.started_at,
+    s.paid_until
+  from public.subscriptions s
+  join auth.users u on u.id = s.user_id
+  where s.paid_until > now() - interval '30 days'
+  order by (s.paid_until > now()) desc, s.paid_until;
+end;
+$$;
+
+revoke execute on function public.admin_members() from public, anon;
+grant execute on function public.admin_members() to authenticated;
+
+-- The admin lets a member in for longer, or out right now.
+--   add_days > 0  : that many more days
+--   add_days = 0  : the bundle ends now
+create or replace function public.admin_change_member(member_id uuid, add_days integer)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_until timestamptz;
+begin
+  if not public.is_admin() then
+    raise exception 'Only an admin may do this.';
+  end if;
+  if add_days is null or add_days < 0 or add_days > 3660 then
+    raise exception 'The number of days must be between 0 and 3660.';
+  end if;
+  if not exists (select 1 from auth.users where id = member_id) then
+    raise exception 'There is no such account.';
+  end if;
+
+  if add_days = 0 then
+    update public.subscriptions
+    set paid_until = now(), updated_at = now()
+    where user_id = member_id and paid_until > now()
+    returning paid_until into v_until;
+    return v_until;
+  end if;
+
+  insert into public.subscriptions (user_id, paid_until, started_at)
+  values (member_id, now() + make_interval(days => add_days), now())
+  on conflict (user_id) do update
+    set started_at = case when public.subscriptions.paid_until > now()
+                          then public.subscriptions.started_at else now() end,
+        paid_until = greatest(public.subscriptions.paid_until, now())
+                     + make_interval(days => add_days),
+        updated_at = now()
+  returning paid_until into v_until;
+
+  return v_until;
+end;
+$$;
+
+revoke execute on function public.admin_change_member(uuid, integer) from public, anon;
+grant execute on function public.admin_change_member(uuid, integer) to authenticated;

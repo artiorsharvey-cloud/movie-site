@@ -1533,6 +1533,70 @@ button.avatar[data-count]::after {
   color: var(--good);
 }
 
+/* One member in the admin window: name, time left, a bar, buttons */
+.member-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 14px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.member-who {
+  min-width: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.member-who small {
+  display: block;
+  color: var(--muted);
+}
+
+.member-time {
+  color: var(--good);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* The bar goes across the whole row */
+.member-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.member-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--good);
+}
+
+.member-bar-fill.low {
+  background: var(--danger);
+}
+
+.member-buttons {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.button-small {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* A bundle that has ended */
+.member-row.ended .member-time {
+  color: var(--muted);
+}
+
 .order-empty {
   padding: 12px 0;
   color: var(--muted);

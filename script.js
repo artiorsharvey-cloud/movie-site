@@ -188,6 +188,8 @@ const adminDialog = $("admin-dialog");
 const adminMessage = $("admin-message");
 const adminPending = $("admin-pending");
 const adminDone = $("admin-done");
+const adminMembers = $("admin-members");
+const membersMessage = $("members-message");
 
 const uploadDialog = $("upload-dialog");
 const movieForm = $("movie-form");
@@ -1349,7 +1351,139 @@ function makeOrderRow(order) {
   return item;
 }
 
+// ---------------------------------------------------------------
+// THE MEMBERS (admin): everyone with a bundle, with a bar that
+// shows how much of their time is left.
+// Nobody has to remove a member when the time is up: the database
+// compares the end date with the clock every time a movie is
+// opened, so access stops by itself.
+// ---------------------------------------------------------------
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function makeMemberRow(member) {
+  const start = new Date(member.started_at);
+  const end = new Date(member.paid_until);
+  const now = new Date();
+  const active = end > now;
+
+  // How much is left, as a number from 0 to 1.
+  const total = Math.max(end - start, 1);
+  const left = active ? Math.min((end - now) / total, 1) : 0;
+  const daysLeft = Math.ceil((end - now) / DAY_MS);
+
+  const item = document.createElement("li");
+  item.className = "member-row";
+
+  const who = document.createElement("div");
+  who.className = "member-who";
+  const name = document.createElement("strong");
+  name.textContent = member.name || member.email;
+  who.appendChild(name);
+  if (member.name) {
+    const email = document.createElement("small");
+    email.textContent = member.email;
+    who.appendChild(email);
+  }
+
+  const time = document.createElement("div");
+  time.className = "member-time";
+  time.textContent = active
+    ? daysLeft + " хоног үлдсэн · " + dateText(end) + " хүртэл"
+    : "Дууссан · " + dateText(end);
+
+  const bar = document.createElement("div");
+  bar.className = "member-bar";
+  const fill = document.createElement("div");
+  fill.className = "member-bar-fill";
+  fill.style.width = Math.round(left * 100) + "%";
+  // Less than a fifth left, or 3 days: the bar turns red.
+  if (active && (left < 0.2 || daysLeft <= 3)) {
+    fill.classList.add("low");
+  }
+  bar.appendChild(fill);
+
+  const buttons = document.createElement("div");
+  buttons.className = "member-buttons";
+
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "button button-ghost button-small";
+  more.textContent = "+30 хоног";
+  more.addEventListener("click", function () {
+    changeMember(member, 30);
+  });
+  buttons.appendChild(more);
+
+  if (active) {
+    const stop = document.createElement("button");
+    stop.type = "button";
+    stop.className = "button button-danger button-small";
+    stop.textContent = "Эрх хаах";
+    stop.addEventListener("click", function () {
+      const sure = confirm((member.name || member.email) + " хэрэглэгчийн багцын эрхийг одоо хаах уу?");
+      if (sure) {
+        changeMember(member, 0);
+      }
+    });
+    buttons.appendChild(stop);
+  }
+
+  item.appendChild(who);
+  item.appendChild(time);
+  item.appendChild(bar);
+  item.appendChild(buttons);
+  if (!active) {
+    item.classList.add("ended");
+  }
+  return item;
+}
+
+async function showAdminMembers() {
+  const { data, error } = await db.rpc("admin_members");
+
+  if (error) {
+    console.error("Could not load members:", error);
+    showFormMessage(membersMessage, "Гишүүдийг ачаалж чадсангүй. " + error.message, true);
+    return;
+  }
+
+  adminMembers.innerHTML = "";
+  for (const member of data) {
+    adminMembers.appendChild(makeMemberRow(member));
+  }
+  if (data.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "order-empty";
+    empty.textContent = "Багцтай гишүүн алга.";
+    adminMembers.appendChild(empty);
+  }
+}
+
+// days > 0: that many more days. days = 0: the bundle ends now.
+async function changeMember(member, days) {
+  showFormMessage(membersMessage, "Хадгалж байна...");
+
+  const { error } = await db.rpc("admin_change_member", {
+    member_id: member.user_id,
+    add_days: days,
+  });
+
+  if (error) {
+    console.error("Could not change member:", error);
+    showFormMessage(membersMessage, "Алдаа: " + error.message, true);
+    return;
+  }
+
+  showFormMessage(
+    membersMessage,
+    (member.name || member.email) + (days > 0 ? ": " + days + " хоног нэмэгдлээ." : ": эрх хаагдлаа.")
+  );
+  await showAdminMembers();
+}
+
 async function showAdminOrders() {
+  showAdminMembers();
+
   showFormMessage(adminMessage, "Ачаалж байна...");
 
   const { data, error } = await db.rpc("admin_orders");
