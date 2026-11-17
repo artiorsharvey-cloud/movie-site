@@ -150,7 +150,11 @@
             </div>
           </div>
 
-          <button id="movie-delete-button" class="button button-danger" type="button" hidden>Кино устгах</button>
+          <!-- Shown only to admins -->
+          <div class="movie-admin-buttons">
+            <button id="movie-edit-button" class="button button-ghost" type="button" hidden>Засах</button>
+            <button id="movie-delete-button" class="button button-danger" type="button" hidden>Кино устгах</button>
+          </div>
         </div>
       </div>
 
@@ -428,6 +432,56 @@
         <input id="reset-password-input" type="text" autocomplete="off" minlength="6" required>
         <p id="reset-message" class="form-message" role="status"></p>
         <button id="reset-button" class="button button-ghost button-wide" type="submit">Нууц үг солих</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- CHANGE A MOVIE (admins): the words and numbers, not the files -->
+  <dialog id="edit-dialog" class="dialog" aria-labelledby="edit-heading">
+    <div class="dialog-body dialog-padded">
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <h2 id="edit-heading">Кино засах</h2>
+
+      <form id="edit-form">
+        <label for="edit-title-input">Нэр</label>
+        <input id="edit-title-input" type="text" maxlength="100" required>
+
+        <div class="form-row">
+          <div class="form-grow">
+            <label for="edit-genre-input">Төрөл</label>
+            <select id="edit-genre-input">
+              <option value="">Төрөлгүй</option>
+              <!-- script.js adds the genres here -->
+            </select>
+          </div>
+          <div class="form-small">
+            <label for="edit-year-input">Он</label>
+            <input id="edit-year-input" type="number" min="1888" max="2100">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-grow">
+            <label for="edit-price-input">Түрээсийн үнэ (₮)</label>
+            <input id="edit-price-input" type="number" min="0" max="1000000" step="100" required>
+          </div>
+          <div class="form-grow">
+            <label for="edit-duration-input">Үргэлжлэх хугацаа (мин)</label>
+            <input id="edit-duration-input" type="number" min="1" max="1000">
+          </div>
+        </div>
+
+        <label for="edit-trailer-input">Трейлер (YouTube холбоос)</label>
+        <input id="edit-trailer-input" type="text" inputmode="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=...">
+
+        <label for="edit-description-input">Тайлбар</label>
+        <textarea id="edit-description-input" rows="3" maxlength="500"></textarea>
+
+        <p id="edit-message" class="form-message" role="status"></p>
+
+        <button id="edit-save-button" class="button button-accent button-wide" type="submit">Хадгалах</button>
       </form>
     </div>
   </dialog>

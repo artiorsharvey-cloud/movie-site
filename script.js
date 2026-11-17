@@ -121,6 +121,19 @@ const movieLikeButton = $("movie-like-button");
 const movieLikeCount = $("movie-like-count");
 const movieStars = $("movie-stars");
 const movieDeleteButton = $("movie-delete-button");
+const movieEditButton = $("movie-edit-button");
+
+const editDialog = $("edit-dialog");
+const editForm = $("edit-form");
+const editTitleInput = $("edit-title-input");
+const editGenreInput = $("edit-genre-input");
+const editYearInput = $("edit-year-input");
+const editPriceInput = $("edit-price-input");
+const editDurationInput = $("edit-duration-input");
+const editTrailerInput = $("edit-trailer-input");
+const editDescriptionInput = $("edit-description-input");
+const editMessage = $("edit-message");
+const editSaveButton = $("edit-save-button");
 const moviePrice = $("movie-price");
 const moviePlanNote = $("movie-plan-note");
 const movieCategory = $("movie-category");
@@ -1008,6 +1021,7 @@ function showMovieDialog() {
   }
 
   movieDeleteButton.hidden = !account.isAdmin;
+  movieEditButton.hidden = !account.isAdmin;
 
   // "You may also like": other movies of the same genre first, then
   // the newest ones, six in all.
@@ -2010,6 +2024,101 @@ async function deleteMovie() {
 }
 
 // ---------------------------------------------------------------
+// CHANGE A MOVIE (UPDATE)
+// The admin changes the name, category, year, price, length,
+// trailer or description. The video and the poster stay as they
+// are. The database only lets admins do this.
+// ---------------------------------------------------------------
+
+// Open the edit window, filled in with what the movie has now.
+function openEditMovie() {
+  const row = openMovie;
+  if (!row) {
+    return;
+  }
+
+  editTitleInput.value = row.title;
+  editGenreInput.value = row.genre || "";
+  editYearInput.value = row.year || "";
+  editPriceInput.value = row.rent_price;
+  editDurationInput.value = row.duration_minutes || "";
+  editTrailerInput.value = row.trailer_id ? "https://www.youtube.com/watch?v=" + row.trailer_id : "";
+  editDescriptionInput.value = row.description || "";
+
+  showFormMessage(editMessage, "");
+  editDialog.showModal();
+}
+
+async function saveEditedMovie(event) {
+  event.preventDefault();
+
+  const row = openMovie;
+  const title = editTitleInput.value.trim();
+  const description = editDescriptionInput.value.trim();
+  const price = Number(editPriceInput.value);
+
+  if (title === "") {
+    showFormMessage(editMessage, "Киноны нэрийг бичнэ үү.", true);
+    return;
+  }
+  if (!Number.isInteger(price) || price < 0) {
+    showFormMessage(editMessage, "Түрээсийн үнийг зөв бичнэ үү.", true);
+    return;
+  }
+
+  const trailerText = editTrailerInput.value.trim();
+  const trailerId = trailerText === "" ? null : youtubeId(trailerText);
+  if (trailerText !== "" && trailerId === null) {
+    showFormMessage(editMessage, "Трейлерийн холбоос YouTube-ийн холбоос биш байна.", true);
+    return;
+  }
+
+  editSaveButton.disabled = true;
+  showFormMessage(editMessage, "Хадгалж байна...");
+
+  // .select() asks for the changed row back. If the list is empty,
+  // the database changed nothing (for example: not an admin).
+  const { data, error } = await db
+    .from("movies")
+    .update({
+      title: title,
+      genre: editGenreInput.value === "" ? null : editGenreInput.value,
+      year: editYearInput.value === "" ? null : Number(editYearInput.value),
+      rent_price: price,
+      duration_minutes: editDurationInput.value === "" ? null : Number(editDurationInput.value),
+      trailer_id: trailerId,
+      description: description === "" ? null : description,
+    })
+    .eq("id", row.id)
+    .select("id");
+
+  editSaveButton.disabled = false;
+
+  if (error || data.length === 0) {
+    console.error("Could not change movie:", error);
+    showFormMessage(
+      editMessage,
+      "Хадгалж чадсангүй. " + (error ? error.message : "Таны эрх хүрэхгүй байна."),
+      true
+    );
+    return;
+  }
+
+  editDialog.close();
+  showToast("Кино засагдлаа.");
+
+  // Read the movies again, and show the changed one in its window.
+  await loadMovies();
+  const fresh = allMovies.find(function (movie) {
+    return movie.id === row.id;
+  });
+  if (fresh && movieDialog.open) {
+    openMovie = fresh;
+    showMovieDialog();
+  }
+}
+
+// ---------------------------------------------------------------
 // SIGN UP, LOG IN, LOG OUT
 // ---------------------------------------------------------------
 function setLoginButtonsDisabled(disabled) {
@@ -2399,6 +2508,8 @@ movieRentButton.addEventListener("click", rentMovie);
 moviePlanButton.addEventListener("click", openPlans);
 movieLikeButton.addEventListener("click", likeMovie);
 movieDeleteButton.addEventListener("click", deleteMovie);
+movieEditButton.addEventListener("click", openEditMovie);
+editForm.addEventListener("submit", saveEditedMovie);
 
 orderCheckButton.addEventListener("click", checkOrder);
 orderCancelButton.addEventListener("click", cancelOrder);
@@ -2436,6 +2547,8 @@ for (const genre of GENRES) {
   option.value = genre;
   option.textContent = genre;
   genreInput.appendChild(option);
+  // The same list in the "change a movie" window.
+  editGenreInput.appendChild(option.cloneNode(true));
 }
 
 // Put the bank details into the payment window.

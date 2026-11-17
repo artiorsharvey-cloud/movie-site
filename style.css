@@ -1419,6 +1419,13 @@ button.avatar[data-count]::after {
   border: 0;
 }
 
+/* The admin's buttons at the bottom of a movie: change, delete */
+.movie-admin-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .player-info {
   padding: 16px 24px 20px;
   background: var(--surface);

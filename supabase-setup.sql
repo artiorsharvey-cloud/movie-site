@@ -1376,3 +1376,24 @@ alter table public.movies add column if not exists trailer_id text
 
 grant select (trailer_id) on table public.movies to anon, authenticated;
 grant insert (trailer_id) on table public.movies to authenticated;
+
+
+
+-- ===============================================================
+-- STAGE 15: CHANGE A MOVIE
+--
+-- Admins may change the words and numbers of a movie: name,
+-- category, year, description, length, price, trailer.
+-- Not the files, and not the counters (views, likes, ratings):
+-- those columns are not in the list, so nobody can touch them here.
+-- ===============================================================
+grant update (title, year, genre, description, duration_minutes, rent_price, trailer_id)
+  on table public.movies to authenticated;
+
+drop policy if exists "Admins change movies" on public.movies;
+create policy "Admins change movies"
+  on public.movies
+  for update
+  to authenticated
+  using ((select public.is_admin()))
+  with check ((select public.is_admin()));
