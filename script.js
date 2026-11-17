@@ -154,6 +154,13 @@ const loginButton = $("login-button");
 const signupButton = $("signup-button");
 const loginMessage = $("login-message");
 const forgotButton = $("forgot-button");
+const passwordField = $("password-field");
+
+const recoveryDialog = $("recovery-dialog");
+const recoveryForm = $("recovery-form");
+const recoveryInput = $("recovery-input");
+const recoveryMessage = $("recovery-message");
+const recoveryButton = $("recovery-button");
 
 const passwordForm = $("password-form");
 const newPasswordInput = $("new-password-input");
@@ -451,6 +458,13 @@ db.auth.onAuthStateChange(function (event, session) {
 
   if (currentUser && loginDialog.open) {
     loginDialog.close();
+  }
+
+  // The person clicked the reset link in their email. Supabase has
+  // logged them in for this; now they choose a new password.
+  if (event === "PASSWORD_RECOVERY" && !recoveryDialog.open) {
+    showFormMessage(recoveryMessage, "");
+    recoveryDialog.showModal();
   }
 
   // Supabase also calls this when it only refreshed the login. Then
@@ -1815,22 +1829,38 @@ function setLoginButtonsDisabled(disabled) {
 
 // The same window does two jobs: log in, and sign up.
 // signupMode says which one it is doing right now.
+// The same window does three jobs: log in, sign up, and ask for a
+// password reset link. These two say which one it is doing now.
 let signupMode = false;
+let forgotMode = false;
 
-function showLoginMode(signup) {
-  signupMode = signup;
+function showLoginMode(signup, forgot) {
+  signupMode = signup === true;
+  forgotMode = forgot === true;
 
-  nameField.hidden = !signup;
-  nameInput.required = signup;
-  forgotButton.hidden = signup;
-  passwordInput.autocomplete = signup ? "new-password" : "current-password";
+  nameField.hidden = !signupMode;
+  nameInput.required = signupMode;
+  passwordField.hidden = forgotMode;
+  passwordInput.required = !forgotMode;
+  forgotButton.hidden = signupMode || forgotMode;
+  passwordInput.autocomplete = signupMode ? "new-password" : "current-password";
 
-  loginHeading.textContent = signup ? "Бүртгүүлэх" : "Нэвтрэх";
-  loginHint.textContent = signup
-    ? "Нэр, имэйл, нууц үгээ оруулна уу."
-    : "Кино үзэхийн тулд нэвтэрнэ үү.";
-  loginButton.textContent = signup ? "Бүртгүүлэх" : "Нэвтрэх";
-  signupButton.textContent = signup ? "Бүртгэлтэй юу? Нэвтрэх" : "Шинээр бүртгүүлэх";
+  if (forgotMode) {
+    loginHeading.textContent = "Нууц үг сэргээх";
+    loginHint.textContent = "Бүртгэлтэй имэйлээ оруулна уу. Бид танд холбоос илгээнэ.";
+    loginButton.textContent = "Холбоос илгээх";
+    signupButton.textContent = "Буцах";
+  } else if (signupMode) {
+    loginHeading.textContent = "Бүртгүүлэх";
+    loginHint.textContent = "Нэр, имэйл, нууц үгээ оруулна уу.";
+    loginButton.textContent = "Бүртгүүлэх";
+    signupButton.textContent = "Бүртгэлтэй юу? Нэвтрэх";
+  } else {
+    loginHeading.textContent = "Нэвтрэх";
+    loginHint.textContent = "Кино үзэхийн тулд нэвтэрнэ үү.";
+    loginButton.textContent = "Нэвтрэх";
+    signupButton.textContent = "Шинээр бүртгүүлэх";
+  }
 
   showFormMessage(loginMessage, "");
 }
@@ -1893,6 +1923,10 @@ async function logIn(event) {
     await signUp();
     return;
   }
+  if (forgotMode) {
+    await sendResetLink();
+    return;
+  }
 
   setLoginButtonsDisabled(true);
   showFormMessage(loginMessage, "Нэвтэрч байна...");
@@ -1917,17 +1951,64 @@ async function logIn(event) {
 
 // ---------------------------------------------------------------
 // PASSWORDS
-// The site sends no emails, so a forgotten password goes like this:
-//   1. the customer contacts you (the admin),
-//   2. you give them a new password in the orders window,
-//   3. they log in and change it to their own on "my page".
+// A forgotten password goes like this:
+//   1. the person types their email and asks for a link,
+//   2. Supabase emails them a link (through the Gmail account set
+//      in the Supabase dashboard: Authentication > Emails > SMTP),
+//   3. the link opens this site, and they choose a new password.
+// If the email never arrives, the admin can still give a new
+// password by hand, in the orders window.
 // ---------------------------------------------------------------
-function showForgotHelp() {
+async function sendResetLink() {
+  setLoginButtonsDisabled(true);
+  showFormMessage(loginMessage, "Илгээж байна...");
+
+  // redirectTo: where the link in the email leads. It is this site.
+  const { error } = await db.auth.resetPasswordForEmail(emailInput.value.trim(), {
+    redirectTo: window.location.origin + "/",
+  });
+
+  setLoginButtonsDisabled(false);
+
+  if (error) {
+    console.error("Reset link failed:", error);
+    showFormMessage(
+      loginMessage,
+      "Илгээж чадсангүй. Хэдэн минутын дараа дахин оролдоно уу. (" + error.message + ")" +
+        (CONTACT ? " " + CONTACT : ""),
+      true
+    );
+    return;
+  }
+
+  // The same words whether the email has an account or not, so
+  // nobody can use this to find out who is a member.
   showFormMessage(
     loginMessage,
-    "Нууц үгээ сэргээхийн тулд админтай холбогдож, бүртгэлтэй имэйлээ хэлнэ үү. " +
-      "Админ танд шинэ нууц үг өгнө." + (CONTACT ? " " + CONTACT : "")
+    "Хэрэв энэ имэйл бүртгэлтэй бол нууц үг сэргээх холбоос илгээлээ. Имэйлээ (Spam хавтсыг ч) шалгана уу."
   );
+}
+
+// After a click on the emailed link: save the new password.
+async function saveRecoveredPassword(event) {
+  event.preventDefault();
+
+  recoveryButton.disabled = true;
+  showFormMessage(recoveryMessage, "Хадгалж байна...");
+
+  const { error } = await db.auth.updateUser({ password: recoveryInput.value });
+
+  recoveryButton.disabled = false;
+
+  if (error) {
+    console.error("Save new password failed:", error);
+    showFormMessage(recoveryMessage, "Хадгалж чадсангүй. (" + error.message + ")", true);
+    return;
+  }
+
+  recoveryInput.value = "";
+  recoveryDialog.close();
+  showToast("Нууц үг солигдлоо. Та нэвтэрсэн байна.");
 }
 
 // A logged-in person changes their own password.
@@ -1995,10 +2076,14 @@ async function logOut() {
 themeButton.addEventListener("click", switchTheme);
 loginForm.addEventListener("submit", logIn);
 signupButton.addEventListener("click", function () {
-  showLoginMode(!signupMode);
+  // In the reset view this button means "back to log in".
+  showLoginMode(forgotMode ? false : !signupMode);
 });
 logoutButton.addEventListener("click", logOut);
-forgotButton.addEventListener("click", showForgotHelp);
+forgotButton.addEventListener("click", function () {
+  showLoginMode(false, true);
+});
+recoveryForm.addEventListener("submit", saveRecoveredPassword);
 passwordForm.addEventListener("submit", changePassword);
 resetForm.addEventListener("submit", resetCustomerPassword);
 movieForm.addEventListener("submit", addMovie);

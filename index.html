@@ -288,8 +288,11 @@
         <label for="email-input">Имэйл</label>
         <input id="email-input" type="email" autocomplete="email" required>
 
-        <label for="password-input">Нууц үг</label>
-        <input id="password-input" type="password" autocomplete="current-password" minlength="6" required>
+        <!-- Hidden when somebody asks for a reset link -->
+        <div id="password-field">
+          <label for="password-input">Нууц үг</label>
+          <input id="password-input" type="password" autocomplete="current-password" minlength="6" required>
+        </div>
 
         <!-- Only in the log in view -->
         <button id="forgot-button" class="link-button" type="button">Нууц үгээ мартсан уу?</button>
@@ -298,6 +301,22 @@
 
         <button id="login-button" class="button button-accent button-wide" type="submit">Нэвтрэх</button>
         <button id="signup-button" class="button button-ghost button-wide" type="button">Шинээр бүртгүүлэх</button>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- A NEW PASSWORD: opens by itself when somebody clicks the
+       reset link in their email -->
+  <dialog id="recovery-dialog" class="dialog" aria-labelledby="recovery-heading">
+    <div class="dialog-body dialog-padded">
+      <h2 id="recovery-heading">Шинэ нууц үг</h2>
+      <p class="dialog-hint">Шинэ нууц үгээ оруулна уу.</p>
+
+      <form id="recovery-form">
+        <label for="recovery-input">Шинэ нууц үг</label>
+        <input id="recovery-input" type="password" autocomplete="new-password" minlength="6" required>
+        <p id="recovery-message" class="form-message" role="status"></p>
+        <button id="recovery-button" class="button button-accent button-wide" type="submit">Хадгалах</button>
       </form>
     </div>
   </dialog>
