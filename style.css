@@ -570,6 +570,60 @@ button.avatar[data-count]::after {
   line-height: 1;
 }
 
+/* The "log in with Google" button: white, like Google's own */
+.google-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 18px;
+  padding: 11px 18px;
+  border: 1px solid #dadce0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1f1f1f;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.google-button:hover:not(:disabled) {
+  background: #f1f3f4;
+}
+
+.google-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.google-button svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+/* The line with "ЭСВЭЛ" (or) in the middle */
+.or-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.or-line::before,
+.or-line::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
 /* A button that looks like a link (forgot password) */
 .link-button {
   display: block;

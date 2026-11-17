@@ -154,6 +154,8 @@ const loginButton = $("login-button");
 const signupButton = $("signup-button");
 const loginMessage = $("login-message");
 const forgotButton = $("forgot-button");
+const googleBox = $("google-box");
+const googleButton = $("google-button");
 const passwordField = $("password-field");
 
 const recoveryDialog = $("recovery-dialog");
@@ -1829,6 +1831,45 @@ function setLoginButtonsDisabled(disabled) {
 
 // The same window does two jobs: log in, and sign up.
 // signupMode says which one it is doing right now.
+// ---------------------------------------------------------------
+// LOG IN WITH GOOGLE
+// The button only shows if Google is switched on in the Supabase
+// dashboard (Authentication > Sign In / Providers > Google). We ask
+// Supabase once, when the page opens.
+// ---------------------------------------------------------------
+let googleIsOn = false;
+
+async function checkGoogle() {
+  try {
+    const response = await fetch(SUPABASE_URL + "/auth/v1/settings", {
+      headers: { apikey: SUPABASE_KEY },
+    });
+    const settings = await response.json();
+    googleIsOn = settings.external && settings.external.google === true;
+  } catch (error) {
+    // No answer: the button stays hidden, and email log in still works.
+    console.error("Could not check Google log in:", error);
+  }
+  googleBox.hidden = !googleIsOn || forgotMode;
+}
+
+// This sends the person to Google. When they come back, they are
+// logged in, and onAuthStateChange above does the rest.
+async function logInWithGoogle() {
+  googleButton.disabled = true;
+
+  const { error } = await db.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: window.location.origin + "/" },
+  });
+
+  if (error) {
+    googleButton.disabled = false;
+    console.error("Google log in failed:", error);
+    showFormMessage(loginMessage, "Google-ээр нэвтэрч чадсангүй. (" + error.message + ")", true);
+  }
+}
+
 // The same window does three jobs: log in, sign up, and ask for a
 // password reset link. These two say which one it is doing now.
 let signupMode = false;
@@ -1843,6 +1884,7 @@ function showLoginMode(signup, forgot) {
   passwordField.hidden = forgotMode;
   passwordInput.required = !forgotMode;
   forgotButton.hidden = signupMode || forgotMode;
+  googleBox.hidden = !googleIsOn || forgotMode;
   passwordInput.autocomplete = signupMode ? "new-password" : "current-password";
 
   if (forgotMode) {
@@ -2084,6 +2126,8 @@ forgotButton.addEventListener("click", function () {
   showLoginMode(false, true);
 });
 recoveryForm.addEventListener("submit", saveRecoveredPassword);
+googleButton.addEventListener("click", logInWithGoogle);
+checkGoogle();
 passwordForm.addEventListener("submit", changePassword);
 resetForm.addEventListener("submit", resetCustomerPassword);
 movieForm.addEventListener("submit", addMovie);
