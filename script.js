@@ -2352,11 +2352,12 @@ orderCopyButton.addEventListener("click", copyOrderCode);
 
 playerDialog.addEventListener("close", stopPlayer);
 
-// For every pop-up window: the X button closes it, and so does a
-// click on the dark background around it.
+// For every pop-up window: only the X button closes it (and the Esc
+// key). A click on the dark background around it does nothing, so
+// a window never closes by accident.
 for (const dialog of document.querySelectorAll("dialog")) {
   dialog.addEventListener("click", function (event) {
-    if (event.target === dialog || event.target.closest("[data-close]")) {
+    if (event.target.closest("[data-close]")) {
       dialog.close();
     }
   });
