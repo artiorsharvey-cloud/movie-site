@@ -130,6 +130,8 @@
             <button id="movie-watch-button" class="button button-accent button-big" type="button" hidden></button>
             <button id="movie-rent-button" class="button button-accent button-big" type="button" hidden></button>
             <button id="movie-plan-button" class="button button-accent button-big" type="button" hidden>🎁 БАГЦ АВАХ</button>
+            <!-- Only for movies that have a trailer. Free for everyone. -->
+            <button id="movie-trailer-button" class="button button-ghost button-big" type="button" hidden>▶ ТРЕЙЛЕР ҮЗЭХ</button>
           </div>
           <p id="movie-plan-note" class="movie-plan-note" hidden>Та багц авснаар манай бүх киног үзэх эрхтэй болно. Илүү хямд, илүү хэмнэлттэй.</p>
 
@@ -222,6 +224,21 @@
       <div class="player-info">
         <h2 id="player-title"></h2>
         <p id="player-meta" class="player-meta"></p>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- THE TRAILER: a YouTube video. script.js puts it in the box
+       when the window opens, and takes it out when it closes. -->
+  <dialog id="trailer-dialog" class="dialog dialog-player" aria-labelledby="trailer-title">
+    <div class="dialog-body">
+      <button class="dialog-close" type="button" aria-label="Хаах" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <div id="trailer-box" class="trailer-box"></div>
+      <div class="player-info">
+        <h2 id="trailer-title"></h2>
+        <p class="player-meta">Трейлер</p>
       </div>
     </div>
   </dialog>
@@ -460,6 +477,9 @@
             <input id="duration-input" type="number" min="1" max="1000">
           </div>
         </div>
+
+        <label for="trailer-input">Трейлер (YouTube холбоос)</label>
+        <input id="trailer-input" type="text" inputmode="url" maxlength="200" placeholder="https://www.youtube.com/watch?v=...">
 
         <label for="description-input">Тайлбар</label>
         <textarea id="description-input" rows="3" maxlength="500"></textarea>

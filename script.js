@@ -128,6 +128,11 @@ const movieMore = $("movie-more");
 const movieMoreList = $("movie-more-list");
 
 const playerDialog = $("player-dialog");
+const movieTrailerButton = $("movie-trailer-button");
+const trailerDialog = $("trailer-dialog");
+const trailerBox = $("trailer-box");
+const trailerTitle = $("trailer-title");
+const trailerInput = $("trailer-input");
 const playerVideo = $("player-video");
 const playerTitle = $("player-title");
 const playerMeta = $("player-meta");
@@ -621,7 +626,7 @@ function showPlans() {
 // ---------------------------------------------------------------
 const MOVIE_COLUMNS =
   "id, user_id, title, year, genre, description, video_path, video_store, poster_path, " +
-  "duration_minutes, rent_price, view_count, like_count, rating_count, rating_sum";
+  "duration_minutes, rent_price, view_count, like_count, rating_count, rating_sum, trailer_id";
 
 async function loadMovies() {
   const { data, error } = await db
@@ -965,6 +970,7 @@ function showMovieDialog() {
   movieRentButton.textContent = "🎬 ТҮРЭЭСЛЭХ " + money(row.rent_price);
   moviePlanButton.hidden = allowed;
   moviePlanNote.hidden = allowed;
+  movieTrailerButton.hidden = !row.trailer_id;
 
   // The price under the title. Free movies say so.
   moviePrice.textContent = isPaidMovie(row)
@@ -1141,6 +1147,43 @@ async function playMovie(row) {
 
 // Runs whenever the player window closes: by the X button, by the
 // Esc key, or by a click on the dark background.
+// ---------------------------------------------------------------
+// THE TRAILER
+// Every YouTube video has an id of 11 letters. It is in the link:
+//   https://www.youtube.com/watch?v=dQw4w9WgXcQ
+//   https://youtu.be/dQw4w9WgXcQ
+// We keep only the id in the database. Returns null if the text is
+// not a YouTube link.
+// ---------------------------------------------------------------
+function youtubeId(text) {
+  const found = text.trim().match(
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/
+  );
+  return found ? found[1] : null;
+}
+
+function playTrailer() {
+  if (!openMovie || !openMovie.trailer_id) {
+    return;
+  }
+
+  // An <iframe> is a window to another website, here to YouTube.
+  const frame = document.createElement("iframe");
+  frame.src = "https://www.youtube-nocookie.com/embed/" + openMovie.trailer_id + "?autoplay=1&rel=0";
+  frame.title = openMovie.title + " - трейлер";
+  frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+  frame.allowFullscreen = true;
+
+  trailerBox.replaceChildren(frame);
+  trailerTitle.textContent = openMovie.title;
+  trailerDialog.showModal();
+}
+
+// Taking the iframe out is what stops the sound.
+function stopTrailer() {
+  trailerBox.replaceChildren();
+}
+
 function stopPlayer() {
   playerVideo.pause();
   playerVideo.removeAttribute("src");
@@ -1795,6 +1838,16 @@ async function addMovie(event) {
 
   const title = titleInput.value.trim();
   const description = descriptionInput.value.trim();
+
+  // The trailer is optional. If something is typed, it must be a
+  // YouTube link. Check before the long upload starts.
+  const trailerText = trailerInput.value.trim();
+  const trailerId = trailerText === "" ? null : youtubeId(trailerText);
+  if (trailerText !== "" && trailerId === null) {
+    showFormMessage(uploadMessage, "Трейлерийн холбоос YouTube-ийн холбоос биш байна.", true);
+    trailerInput.focus();
+    return;
+  }
   const year = yearInput.value === "" ? null : Number(yearInput.value);
   const duration = durationInput.value === "" ? null : Number(durationInput.value);
   const price = Number(priceInput.value);
@@ -1887,6 +1940,7 @@ async function addMovie(event) {
     video_path: video.path,
     video_store: "r2",
     poster_path: posterPath,
+    trailer_id: trailerId,
   });
 
   if (error) {
@@ -2351,6 +2405,8 @@ orderCancelButton.addEventListener("click", cancelOrder);
 orderCopyButton.addEventListener("click", copyOrderCode);
 
 playerDialog.addEventListener("close", stopPlayer);
+movieTrailerButton.addEventListener("click", playTrailer);
+trailerDialog.addEventListener("close", stopTrailer);
 
 // For every pop-up window: only the X button closes it (and the Esc
 // key). A click on the dark background around it does nothing, so

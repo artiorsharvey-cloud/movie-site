@@ -1360,3 +1360,19 @@ $$;
 
 revoke execute on function public.admin_change_member(uuid, integer) from public, anon;
 grant execute on function public.admin_change_member(uuid, integer) to authenticated;
+
+
+
+-- ===============================================================
+-- STAGE 14: TRAILERS
+--
+-- A movie can have a trailer on YouTube. Every YouTube video has an
+-- id of 11 letters (the part after "v=" in its link). We keep only
+-- that id. The check refuses anything that is not such an id.
+-- Everyone may see it; only uploaders may set it.
+-- ===============================================================
+alter table public.movies add column if not exists trailer_id text
+  check (trailer_id is null or trailer_id ~ '^[A-Za-z0-9_-]{11}$');
+
+grant select (trailer_id) on table public.movies to anon, authenticated;
+grant insert (trailer_id) on table public.movies to authenticated;
